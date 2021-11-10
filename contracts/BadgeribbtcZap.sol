@@ -7,28 +7,59 @@ import "@openzeppelin-contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 import "../interfaces/badger/ISett.sol";
+import "../interfaces/badger/ICurveZap.sol";
 
 
-contract BadgeribbtcZap {
+contract BadgeribbtcZap is PausableUpgradeable {
     
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using AddressUpgradeable for address;
     using SafeMathUpgradeable for uint256;
 
-    address public constant CURVE_IBBTC_METAPOOL = 0xBA12222222228d8Ba445958a75a0704d566BF2C8; // TODO: set address to ibbtc crv metapool
-    address public constant CURVE_IBBTC_DEPOSIT_ZAP = 0xBA12222222228d8Ba445958a75a0704d566BF2C8; // TODO: set address to ibbtc crv deposit zap
+    address public governance;
+    address public constant CURVE_IBBTC_METAPOOL = 0xFbdCA68601f835b27790D98bbb8eC7f05FDEaA9B; // address of ibbtc crv metapool
+    address public constant CURVE_IBBTC_DEPOSIT_ZAP = 0xbba4b444FD10302251d9F5797E763b0d912286A1; // address of ibbtc crv deposit zap
+    address public constant VAULT = 0x937B8E917d0F36eDEBBA8E459C5FB16F3b315551; // TODO: set address to ibbtc crv lp badger vault
 
-    IVault vault = ISett(0xBA12222222228d8Ba445958a75a0704d566BF2C8); // TODO: set address to ibbtc crv lp badger vault
+    ISett vault = ISett(VAULT);
     IERC20Upgradeable public ibbtc = IERC20Upgradeable(0xc4E15973E6fF2A35cC804c2CF9D2a1b817a8b40F); // ibbtc token
 
-    function deposit(uint256 _amount) {
-        
-        // before depositing approve the tokens for zap to use ... check that ?
+    function initialize(address _governance) public {
+        require(_governance != address(0)); // dev: 0 address
+        governance = _governance;
 
+        /// @dev approve the metapool tokens for vault to use
+        /// @notice the address of metapool token is same as metapool address
+        IERC20Upgradeable(CURVE_IBBTC_METAPOOL).safeApprove(VAULT, type(uint256).max);
+    }
+
+    /// ===== Modifiers =====
+
+    function _onlyGovernance() internal view {
+        require(msg.sender == governance, "onlyGovernance");
+    }
+
+    /// ===== Permissioned Actions: Governance =====
+
+    function pause() external {
+        _onlyGovernance();
+        _pause();
+    }
+
+    function unpause() external {
+        _onlyGovernance();
+        _unpause();
+    }
+
+    /// ===== Public Functions =====
+
+    function deposit(uint256 _amount) public whenNotPaused {
+        
         uint256 _before = ibbtc.balanceOf(address(this));
-        token.safeTransferFrom(msg.sender, address(this), _amount);
+        ibbtc.safeTransferFrom(msg.sender, address(this), _amount);
         uint256 _after = ibbtc.balanceOf(address(this));
 
         require(_after - _before == _amount); // dev: _amount error
@@ -37,12 +68,13 @@ contract BadgeribbtcZap {
         uint256[] memory _deposit_amounts = new uint256[](4);
         _deposit_amounts[0] = _amount;
 
-        ZAP(CURVE_IBBTC_DEPOSIT_ZAP).add_liquidity(CURVE_IBBTC_METAPOOL, _deposit_amounts, 0); // change _min_mint_amount from 0
+        ICurveZap(CURVE_IBBTC_DEPOSIT_ZAP).add_liquidity(CURVE_IBBTC_METAPOOL, _deposit_amounts, 0, address(this)); // change _min_mint_amount from 0
         
-        // // approve tokens for vault to use
-        // uint256 _vault_deposit_amount = lptoken.balanceOf(address(this));
-        // // deposit crv lp tokens into vault
-        // vault.depositFor(msg.sender, _vault_deposit_amount);
+        uint256 _vault_deposit_amount = IERC20Upgradeable(CURVE_IBBTC_METAPOOL).balanceOf(address(this));
+        // deposit crv lp tokens into vault
+        /// @notice For SettV4 depositFor _lockForBlock for receipient ie. msg.sender (patron) to this function ie. deposit
+        /// therefore the zap will not be locked for the block and multiple tx's can happen in the same block
+        vault.depositFor(msg.sender, _vault_deposit_amount);
 
     }
 
