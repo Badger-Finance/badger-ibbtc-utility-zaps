@@ -24,8 +24,7 @@ contract BadgeribbtcZap is PausableUpgradeable {
     address public constant CURVE_IBBTC_DEPOSIT_ZAP = 0xbba4b444FD10302251d9F5797E763b0d912286A1; // address of ibbtc crv deposit zap
     address public constant VAULT = 0x937B8E917d0F36eDEBBA8E459C5FB16F3b315551; // TODO: set address to ibbtc crv lp badger vault
 
-    ISett vault = ISett(VAULT);
-    IERC20Upgradeable public ibbtc = IERC20Upgradeable(0xc4E15973E6fF2A35cC804c2CF9D2a1b817a8b40F); // ibbtc token
+    IERC20Upgradeable public constant ibbtc = IERC20Upgradeable(0xc4E15973E6fF2A35cC804c2CF9D2a1b817a8b40F); // ibbtc token
 
     function initialize(address _governance) public {
         require(_governance != address(0)); // dev: 0 address
@@ -58,23 +57,18 @@ contract BadgeribbtcZap is PausableUpgradeable {
 
     function deposit(uint256 _amount) public whenNotPaused {
         
-        uint256 _before = ibbtc.balanceOf(address(this));
         ibbtc.safeTransferFrom(msg.sender, address(this), _amount);
-        uint256 _after = ibbtc.balanceOf(address(this));
-
-        require(_after - _before == _amount); // dev: _amount error
 
         // deposit ibbtc into the crv by using ibbtc curve deposit zap
-        uint256[] memory _deposit_amounts = new uint256[](4);
-        _deposit_amounts[0] = _amount;
+        uint256[] memory depositAmounts = new uint256[](4);
+        depositAmounts[0] = _amount;
 
-        ICurveZap(CURVE_IBBTC_DEPOSIT_ZAP).add_liquidity(CURVE_IBBTC_METAPOOL, _deposit_amounts, 0, address(this)); // change _min_mint_amount from 0
+        uint256 vaultDepositAmount = ICurveZap(CURVE_IBBTC_DEPOSIT_ZAP).add_liquidity(CURVE_IBBTC_METAPOOL, depositAmounts, 0, address(this));
         
-        uint256 _vault_deposit_amount = IERC20Upgradeable(CURVE_IBBTC_METAPOOL).balanceOf(address(this));
         // deposit crv lp tokens into vault
         /// @notice For SettV4 depositFor _lockForBlock for receipient ie. msg.sender (patron) to this function ie. deposit
         /// therefore the zap will not be locked for the block and multiple tx's can happen in the same block
-        vault.depositFor(msg.sender, _vault_deposit_amount);
+        ISett(VAULT).depositFor(msg.sender, vaultDepositAmount);
 
     }
 
