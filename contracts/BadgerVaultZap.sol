@@ -13,7 +13,7 @@ import "../interfaces/badger/ISett.sol";
 import "../interfaces/badger/ICurveZap.sol";
 
 
-contract BadgeribbtcZap is PausableUpgradeable {
+contract BadgerVaultZap is PausableUpgradeable {
     
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using AddressUpgradeable for address;
@@ -22,9 +22,9 @@ contract BadgeribbtcZap is PausableUpgradeable {
     address public governance;
     address public constant CURVE_IBBTC_METAPOOL = 0xFbdCA68601f835b27790D98bbb8eC7f05FDEaA9B; // address of ibbtc crv metapool
     address public constant CURVE_IBBTC_DEPOSIT_ZAP = 0xbba4b444FD10302251d9F5797E763b0d912286A1; // address of ibbtc crv deposit zap
-    address public constant VAULT = 0x937B8E917d0F36eDEBBA8E459C5FB16F3b315551; // TODO: set address to ibbtc crv lp badger vault
-
-    IERC20Upgradeable public constant ibbtc = IERC20Upgradeable(0xc4E15973E6fF2A35cC804c2CF9D2a1b817a8b40F); // ibbtc token
+    address public constant VAULT = 0xaE96fF08771a109dc6650a1BdCa62F2d558E40af; // address of ibbtc crv lp badger vault
+    
+    address[] public ASSETS = [0xc4E15973E6fF2A35cC804c2CF9D2a1b817a8b40F /* ibbtc */, 0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D /* renbtc */, 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599 /* wbtc */, 0xfE18be6b3Bd88A2D2A7f928d00292E7a9963CfC6 /* sbtc */];
 
     function initialize(address _governance) public {
         require(_governance != address(0)); // dev: 0 address
@@ -55,13 +55,14 @@ contract BadgeribbtcZap is PausableUpgradeable {
 
     /// ===== Public Functions =====
 
-    function deposit(uint256 _amount) public whenNotPaused {
+    function deposit(uint256 _idx,  uint256 _amount) public whenNotPaused {
         
-        ibbtc.safeTransferFrom(msg.sender, address(this), _amount);
+        require(_idx >=0 && _idx < 4); // dev: incorrect value
+        IERC20Upgradeable(ASSETS[_idx]).safeTransferFrom(msg.sender, address(this), _amount);
 
-        // deposit ibbtc into the crv by using ibbtc curve deposit zap
+        // deposit into the crv by using ibbtc curve deposit zap
         uint256[] memory depositAmounts = new uint256[](4);
-        depositAmounts[0] = _amount;
+        depositAmounts[_idx] = _amount;
 
         uint256 vaultDepositAmount = ICurveZap(CURVE_IBBTC_DEPOSIT_ZAP).add_liquidity(CURVE_IBBTC_METAPOOL, depositAmounts, 0, address(this));
         
@@ -71,5 +72,5 @@ contract BadgeribbtcZap is PausableUpgradeable {
         ISett(VAULT).depositFor(msg.sender, vaultDepositAmount);
 
     }
-
+ 
 }
