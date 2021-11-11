@@ -55,15 +55,16 @@ contract BadgerVaultZap is PausableUpgradeable {
 
     /// ===== Public Functions =====
 
-    function deposit(uint256 _idx,  uint256 _amount) public whenNotPaused {
+    function deposit(uint256[] memory _amounts) public whenNotPaused {
         
-        require(_idx >=0 && _idx < 4); // dev: incorrect value
-        IERC20Upgradeable(ASSETS[_idx]).safeTransferFrom(msg.sender, address(this), _amount);
+        uint256[] memory depositAmounts = new uint256[](4);
+
+        for (int i=0; i<4; i++) {
+            IERC20Upgradeable(ASSETS[i]).safeTransferFrom(msg.sender, address(this), _amounts[i]);
+            depositAmounts[i] = _amount;
+        }
 
         // deposit into the crv by using ibbtc curve deposit zap
-        uint256[] memory depositAmounts = new uint256[](4);
-        depositAmounts[_idx] = _amount;
-
         uint256 vaultDepositAmount = ICurveZap(CURVE_IBBTC_DEPOSIT_ZAP).add_liquidity(CURVE_IBBTC_METAPOOL, depositAmounts, 0, address(this));
         
         // deposit crv lp tokens into vault
