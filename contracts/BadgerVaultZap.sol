@@ -59,9 +59,9 @@ contract BadgerVaultZap is PausableUpgradeable {
         
         uint256[] memory depositAmounts = new uint256[](4);
 
-        for (int i=0; i<4; i++) {
+        for (uint256 i=0; i<4; i++) {
             IERC20Upgradeable(ASSETS[i]).safeTransferFrom(msg.sender, address(this), _amounts[i]);
-            depositAmounts[i] = _amount;
+            depositAmounts[i] = _amounts[i];
         }
 
         // deposit into the crv by using ibbtc curve deposit zap
