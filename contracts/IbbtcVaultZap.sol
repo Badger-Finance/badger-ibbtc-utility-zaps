@@ -14,7 +14,7 @@ import "../interfaces/badger/ISett.sol";
 import "../interfaces/badger/IZapRenWBTC.sol";
 import "../interfaces/curve/ICurveFi.sol";
 
-contract BadgerVaultZap is PausableUpgradeable {
+contract IbbtcVaultZap is PausableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using AddressUpgradeable for address;
     using SafeMathUpgradeable for uint256;
