@@ -2,25 +2,31 @@
 pragma solidity >=0.5.0 <0.8.0;
 
 interface IPeak {
-    function portfolioValue() external view returns (uint);
+    function portfolioValue() external view returns (uint256);
 }
 
 interface IBadgerSettPeak is IPeak {
-    function mint(uint poolId, uint inAmount, bytes32[] calldata merkleProof)
-        external
-        returns(uint outAmount);
+    function mint(
+        uint256 poolId,
+        uint256 inAmount,
+        bytes32[] calldata merkleProof
+    ) external returns (uint256 outAmount);
 
-    function calcMint(uint poolId, uint inAmount)
+    function calcMint(uint256 poolId, uint256 inAmount)
         external
         view
-        returns(uint bBTC, uint fee);
+        returns (uint256 bBTC, uint256 fee);
 
-    function redeem(uint poolId, uint inAmount)
+    function redeem(uint256 poolId, uint256 inAmount)
         external
-        returns (uint outAmount);
+        returns (uint256 outAmount);
 
-    function calcRedeem(uint poolId, uint bBtc)
+    function calcRedeem(uint256 poolId, uint256 bBtc)
         external
         view
-        returns(uint sett, uint fee, uint max);
+        returns (
+            uint256 sett,
+            uint256 fee,
+            uint256 max
+        );
 }
