@@ -116,6 +116,8 @@ contract IbbtcVaultZap is PausableUpgradeable {
     /// ===== Public Functions =====
 
     function deposit(uint256[4] calldata _amounts) public whenNotPaused {
+        // TODO: Revert early on blockLock
+
         uint256[4] memory depositAmounts;
 
         for (uint256 i = 0; i < 4; i++) {
