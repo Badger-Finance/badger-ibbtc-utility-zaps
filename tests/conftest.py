@@ -55,10 +55,7 @@ def badger_sett_peak(Contract):
 
 @pytest.fixture(scope="session")
 def ibbtc_vault(Contract):
-    vault = Contract("0xaE96fF08771a109dc6650a1BdCa62F2d558E40af")
-    gov = vault.governance()
-    vault.unpause({"from": gov})
-    yield vault
+    yield Contract("0xaE96fF08771a109dc6650a1BdCa62F2d558E40af")
 
 
 # @pytest.fixture(scope="session")
