@@ -8,9 +8,11 @@ import "@openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../interfaces/badger/ISett.sol";
 import "../interfaces/badger/ICurveZap.sol";
+import "../interfaces/badger/IZapRenWBTC.sol";
 
 
 contract BadgerVaultZap is PausableUpgradeable {
@@ -22,6 +24,7 @@ contract BadgerVaultZap is PausableUpgradeable {
     address public governance;
     address public constant CURVE_IBBTC_METAPOOL = 0xFbdCA68601f835b27790D98bbb8eC7f05FDEaA9B; // address of ibbtc crv metapool
     address public constant CURVE_IBBTC_DEPOSIT_ZAP = 0xbba4b444FD10302251d9F5797E763b0d912286A1; // address of ibbtc crv deposit zap
+    address public constant BADGER_RENWBTC_IBBTC_ZAP = 0xaE96fF08771a109dc6650a1BdCa62F2d558E40af; // address of renBTC/wBTC -> ibbtc zap
     address public constant VAULT = 0xaE96fF08771a109dc6650a1BdCa62F2d558E40af; // address of ibbtc crv lp badger vault
     
     address[] public ASSETS = [0xc4E15973E6fF2A35cC804c2CF9D2a1b817a8b40F /* ibbtc */, 0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D /* renbtc */, 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599 /* wbtc */, 0xfE18be6b3Bd88A2D2A7f928d00292E7a9963CfC6 /* sbtc */];
@@ -60,8 +63,15 @@ contract BadgerVaultZap is PausableUpgradeable {
         uint256[] memory depositAmounts = new uint256[](4);
 
         for (uint256 i=0; i<4; i++) {
-            IERC20Upgradeable(ASSETS[i]).safeTransferFrom(msg.sender, address(this), _amounts[i]);
-            depositAmounts[i] = _amounts[i];
+            if ( _amounts[i] > 0 ) {
+                IERC20Upgradeable(ASSETS[i]).safeTransferFrom(msg.sender, address(this), _amounts[i]);
+                if ( i == 1 || i == 2 ) {
+                    (uint256 poolId, uint256 idx, uint256 bBTC, uint256 fee) = IZapRenWBTC(BADGER_RENWBTC_IBBTC_ZAP).calcMint(ASSETS[i], _amounts[i]);
+                    depositAmounts[0] += IZapRenWBTC(BADGER_RENWBTC_IBBTC_ZAP).mint(IERC20(ASSETS[i]), _amounts[i], 0, i-1, bBTC);
+                } else {
+                    depositAmounts[i] += _amounts[i];
+                }
+            }
         }
 
         // deposit into the crv by using ibbtc curve deposit zap
