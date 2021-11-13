@@ -11,7 +11,6 @@ import "@openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "../interfaces/badger/ICurveZap.sol";
 import {IBadgerSettPeak} from "../interfaces/badger/IPeak.sol";
 import "../interfaces/badger/ISett.sol";
-import "../interfaces/badger/IZapRenWBTC.sol";
 import "../interfaces/curve/ICurveFi.sol";
 
 contract IbbtcVaultZap is PausableUpgradeable {
