@@ -8,8 +8,6 @@ import "@openzeppelin-contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 import "@openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 
-import "../interfaces/badger/ICurveZap.sol";
-import {IBadgerSettPeak} from "../interfaces/badger/IPeak.sol";
 import "../interfaces/badger/ISett.sol";
 import "../interfaces/badger/IZapRenWBTC.sol";
 import "../interfaces/curve/ICurveFi.sol";
@@ -89,7 +87,7 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
             1 // idx - wbtc: 1
         );
         _addZapConfig(
-            0x5Dce29e92b1b939F8E8C60DcF15BDE82A85be4a9, // brcvBBTC
+            0x5Dce29e92b1b939F8E8C60DcF15BDE82A85be4a9, // bcrvBBTC
             0x410e3E86ef427e30B9235497143881f717d93c2A, // bbtcCrv
             0xC45b2EEe6e09cA176Ca3bB5f7eEe7C47bF93c756, // bbtcCrv zap
             address(WBTC),
@@ -208,19 +206,35 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
 
     /// ===== Public Functions =====
 
-    function calcMintOut(uint256 _shares, uint256 _settIdx)
+    function calcMint(uint256 _shares, uint256 _settIdx)
         public
         view
         returns (uint256)
     {
+        if (_shares == 0) {
+            return 0;
+        }
+
         ZapConfig memory zapConfig = zapConfigs[_settIdx];
+
+        // Get price per share
+        uint256 pricePerShare;
+        if (
+            address(zapConfig.sett) ==
+            0x4b92d19c11435614CD49Af1b589001b7c08cD4D5
+        ) {
+            // byvWBTC doesn't support getPricePerFullShare
+            pricePerShare = IYearnSett(address(zapConfig.sett)).pricePerShare();
+        } else {
+            pricePerShare = zapConfig.sett.getPricePerFullShare();
+        }
 
         // Withdraw (0.1% withdrawal fee)
         uint256 underlyingAmount = _shares
-            .mul(zapConfig.sett.balance())
-            .div(zapConfig.sett.totalSupply())
+            .mul(pricePerShare)
             .mul(MAX_FEE.sub(SETT_WITHDRAWAL_FEE))
-            .div(MAX_FEE);
+            .div(MAX_FEE)
+            .div(10**zapConfig.sett.decimals());
 
         // Underlying of bvyWBTC is WBTC
         uint256 btcAmount = underlyingAmount;
@@ -246,6 +260,8 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
         uint256 _settIdx,
         uint256 _minOut
     ) public whenNotPaused returns (uint256) {
+        require(_shares > 0);
+
         // TODO: Revert early on blockLock
 
         ZapConfig memory zapConfig = zapConfigs[_settIdx];
