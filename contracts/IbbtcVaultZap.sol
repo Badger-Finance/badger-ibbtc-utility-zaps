@@ -178,13 +178,12 @@ contract IbbtcVaultZap is PausableUpgradeable {
         }
 
         // deposit into the crv by using ibbtc curve deposit zap
-        uint256 vaultDepositAmount = ICurveZap(CURVE_IBBTC_DEPOSIT_ZAP)
-            .add_liquidity(
-                CURVE_IBBTC_METAPOOL,
-                depositAmounts,
-                0,
-                address(this)
-            );
+        uint256 vaultDepositAmount = CURVE_IBBTC_DEPOSIT_ZAP.add_liquidity(
+            CURVE_IBBTC_METAPOOL,
+            depositAmounts,
+            0,
+            address(this)
+        );
 
         uint256 balanceBefore = IBBTC_VAULT.balanceOf(msg.sender);
         // deposit crv lp tokens into vault
