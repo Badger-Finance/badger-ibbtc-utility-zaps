@@ -222,16 +222,15 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
             .mul(MAX_FEE.sub(SETT_WITHDRAWAL_FEE))
             .div(MAX_FEE);
 
-        uint256 btcAmount;
+        // Underlying of bvyWBTC is WBTC
+        uint256 btcAmount = underlyingAmount;
+
         if (address(zapConfig.curvePool) != address(0)) {
             // Remove renBTC/WBTC from pool (0.04% fee + slippage)
             btcAmount = zapConfig.curvePool.calc_withdraw_one_coin(
                 underlyingAmount,
                 zapConfig.withdrawTokenIndex
             );
-        } else {
-            // Underlying of bvyWBTC is WBTC
-            btcAmount = underlyingAmount;
         }
 
         // Zap (calcMint)
@@ -261,7 +260,9 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
         zapConfig.sett.withdraw(_shares);
         uint256 underlyingAmount = zapConfig.token.balanceOf(address(this));
 
-        uint256 btcAmount;
+        // Underlying of bvyWBTC is WBTC
+        uint256 btcAmount = underlyingAmount;
+
         if (address(zapConfig.curvePool) != address(0)) {
             // Remove from pool
             zapConfig.curvePool.remove_liquidity_one_coin(
@@ -270,9 +271,6 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
                 0 // minOut
             );
             btcAmount = zapConfig.withdrawToken.balanceOf(address(this));
-        } else {
-            // Underlying of bvyWBTC is WBTC
-            btcAmount = underlyingAmount;
         }
 
         // Use other zap to deposit
