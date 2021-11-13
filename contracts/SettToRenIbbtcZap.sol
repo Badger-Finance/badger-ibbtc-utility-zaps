@@ -19,6 +19,7 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
     using AddressUpgradeable for address;
     using SafeMathUpgradeable for uint256;
 
+    address public guardian;
     address public governance;
 
     struct ZapConfig {
@@ -43,8 +44,15 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
     uint256 public constant SETT_WITHDRAWAL_FEE = 10;
     uint256 public constant MAX_FEE = 10_000;
 
-    function initialize(address _governance) public {
+    function initialize(address _governance, address _guardian)
+        public
+        initializer
+        whenNotPaused
+    {
+        require(_guardian != address(0)); // dev: 0 address
         require(_governance != address(0)); // dev: 0 address
+
+        guardian = _guardian;
         governance = _governance;
 
         // Allow zap to mint ibbtc through wbtc/renbtc
@@ -95,16 +103,35 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
         require(msg.sender == governance, "onlyGovernance");
     }
 
-    /// ===== Permissioned Actions: Governance =====
+    function _onlyGovernanceOrGuardian() internal view {
+        require(
+            msg.sender == governance || msg.sender == guardian,
+            "onlyGovernanceOrGuardian"
+        );
+    }
+
+    /// ===== Permissioned Actions: Guardian =====
 
     function pause() external {
-        _onlyGovernance();
+        _onlyGovernanceOrGuardian();
         _pause();
     }
+
+    /// ===== Permissioned Actions: Governance =====
 
     function unpause() external {
         _onlyGovernance();
         _unpause();
+    }
+
+    function setGuardian(address _guardian) external {
+        _onlyGovernance();
+        governance = _guardian;
+    }
+
+    function setGovernance(address _governance) external {
+        _onlyGovernance();
+        governance = _governance;
     }
 
     function addZapConfig(
@@ -180,6 +207,7 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
     }
 
     /// ===== Public Functions =====
+
     function calcMintOut(uint256 _shares, uint256 _settIdx)
         public
         view
@@ -220,6 +248,7 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
         uint256 _minOut
     ) public whenNotPaused returns (uint256) {
         // TODO: Revert early on blockLock
+
         ZapConfig memory zapConfig = zapConfigs[_settIdx];
 
         IERC20Upgradeable(address(zapConfig.sett)).safeTransferFrom(
@@ -250,8 +279,8 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
         uint256 ibbtcAmount = IBBTC_MINT_ZAP.mint(
             address(zapConfig.withdrawToken),
             btcAmount,
-            0,
-            address(zapConfig.withdrawToken) == address(RENBTC) ? 0 : 1, // idx - 0: renbtc, 1: wbtc
+            0, // poolId - renCrv: 0
+            address(zapConfig.withdrawToken) == address(RENBTC) ? 0 : 1, // idx - renbtc: 0, wbtc: 1
             _minOut
         );
         IBBTC.safeTransfer(msg.sender, ibbtcAmount);
