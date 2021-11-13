@@ -141,7 +141,7 @@ contract IbbtcVaultZap is PausableUpgradeable {
 
     /// ===== Public Functions =====
 
-    function deposit(uint256[4] calldata _amounts) public whenNotPaused {
+    function deposit(uint256[4] calldata _amounts, uint256 _minOut) public whenNotPaused {
         // TODO: Revert early on blockLock
 
         uint256[4] memory depositAmounts;
@@ -175,7 +175,11 @@ contract IbbtcVaultZap is PausableUpgradeable {
                 address(this)
             );
 
+        uint256 balanceBefore = IBBTC_VAULT.balanceOf(msg.sender);
         // deposit crv lp tokens into vault
         ISett(IBBTC_VAULT).depositFor(msg.sender, vaultDepositAmount);
+        uint256 balanceAfter = IBBTC_VAULT.balanceOf(msg.sender);
+
+        require(balanceAfter.sub(balanceBefore) >= _minOut, "Slippage Check");
     }
 }
