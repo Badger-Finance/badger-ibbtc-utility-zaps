@@ -39,6 +39,11 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
     IZapRenWBTC public constant IBBTC_MINT_ZAP =
         IZapRenWBTC(0xe8E40093017A3A55B5c2BC3E9CA6a4d208c07734);
 
+    ISett public constant RENCRV_SETT =
+        ISett(0x6dEf55d2e18486B9dDfaA075bc4e4EE0B28c1545);
+    address public constant WBTC_YEARN_SETT =
+        0x4b92d19c11435614CD49Af1b589001b7c08cD4D5;
+
     uint256 public constant SETT_WITHDRAWAL_FEE = 10;
     uint256 public constant MAX_FEE = 10_000;
 
@@ -59,7 +64,7 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
 
         // Add zap configs for setts
         _addZapConfig(
-            0x4b92d19c11435614CD49Af1b589001b7c08cD4D5, // byvWBTC
+            WBTC_YEARN_SETT, // byvWBTC
             address(WBTC),
             address(0), // No curve pool
             address(WBTC),
@@ -219,10 +224,7 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
 
         // Get price per share
         uint256 pricePerShare;
-        if (
-            address(zapConfig.sett) ==
-            0x4b92d19c11435614CD49Af1b589001b7c08cD4D5
-        ) {
+        if (address(zapConfig.sett) == WBTC_YEARN_SETT) {
             // byvWBTC doesn't support getPricePerFullShare
             pricePerShare = IYearnSett(address(zapConfig.sett)).pricePerShare();
         } else {
@@ -260,11 +262,23 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
         uint256 _settIdx,
         uint256 _minOut
     ) public whenNotPaused returns (uint256) {
-        require(_shares > 0);
-
-        // TODO: Revert early on blockLock
+        // Non-zero shares
+        require(_shares > 0, "No shares");
+        // Ensure mint zap isn't block locked
+        require(
+            RENCRV_SETT.blockLock(address(IBBTC_MINT_ZAP)) < block.number,
+            "blockLocked"
+        );
 
         ZapConfig memory zapConfig = zapConfigs[_settIdx];
+
+        if (address(zapConfig.sett) != WBTC_YEARN_SETT) {
+            // Not block locked by sett
+            require(
+                zapConfig.sett.blockLock(address(this)) < block.number,
+                "blockLocked"
+            );
+        }
 
         IERC20Upgradeable(address(zapConfig.sett)).safeTransferFrom(
             msg.sender,

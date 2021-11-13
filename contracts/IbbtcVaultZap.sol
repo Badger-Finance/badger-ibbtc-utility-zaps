@@ -141,8 +141,19 @@ contract IbbtcVaultZap is PausableUpgradeable {
 
     /// ===== Public Functions =====
 
-    function deposit(uint256[4] calldata _amounts, uint256 _minOut) public whenNotPaused {
-        // TODO: Revert early on blockLock
+    function deposit(uint256[4] calldata _amounts, uint256 _minOut)
+        public
+        whenNotPaused
+    {
+        // Not block locked by setts
+        require(
+            RENCRV_VAULT.blockLock(address(this)) < block.number,
+            "blockLocked"
+        );
+        require(
+            IBBTC_VAULT.blockLock(address(this)) < block.number,
+            "blockLocked"
+        );
 
         uint256[4] memory depositAmounts;
 
@@ -161,7 +172,7 @@ contract IbbtcVaultZap is PausableUpgradeable {
         }
 
         if (_amounts[1] > 0 || _amounts[2] > 0) {
-            // renbtc and wbtc
+            // Use renbtc and wbtc to mint ibbtc
             // NOTE: Can change to external zap if implemented
             depositAmounts[0] += _renZapToIbbtc([_amounts[1], _amounts[2]]);
         }
