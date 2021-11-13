@@ -11,7 +11,6 @@ import "@openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "../interfaces/badger/ICurveZap.sol";
 import {IBadgerSettPeak} from "../interfaces/badger/IPeak.sol";
 import "../interfaces/badger/ISett.sol";
-import "../interfaces/badger/IZapRenWBTC.sol";
 import "../interfaces/curve/ICurveFi.sol";
 
 contract IbbtcVaultZap is PausableUpgradeable {
@@ -19,6 +18,7 @@ contract IbbtcVaultZap is PausableUpgradeable {
     using AddressUpgradeable for address;
     using SafeMathUpgradeable for uint256;
 
+    address public guardian;
     address public governance;
 
     address public constant CURVE_IBBTC_METAPOOL =
@@ -46,8 +46,15 @@ contract IbbtcVaultZap is PausableUpgradeable {
         IERC20Upgradeable(0xfE18be6b3Bd88A2D2A7f928d00292E7a9963CfC6) // sbtc
     ];
 
-    function initialize(address _governance) public {
+    function initialize(address _guardian, address _governance)
+        public
+        initializer
+        whenNotPaused
+    {
+        require(_guardian != address(0)); // dev: 0 address
         require(_governance != address(0)); // dev: 0 address
+
+        guardian = _guardian;
         governance = _governance;
 
         // renbtc and wbtc approvals for curve pool
@@ -85,16 +92,35 @@ contract IbbtcVaultZap is PausableUpgradeable {
         require(msg.sender == governance, "onlyGovernance");
     }
 
-    /// ===== Permissioned Actions: Governance =====
+    function _onlyGovernanceOrGuardian() internal view {
+        require(
+            msg.sender == governance || msg.sender == guardian,
+            "onlyGovernanceOrGuardian"
+        );
+    }
+
+    /// ===== Permissioned Actions: Guardian =====
 
     function pause() external {
-        _onlyGovernance();
+        _onlyGovernanceOrGuardian();
         _pause();
     }
+
+    /// ===== Permissioned Actions: Governance =====
 
     function unpause() external {
         _onlyGovernance();
         _unpause();
+    }
+
+    function setGuardian(address _guardian) external {
+        _onlyGovernance();
+        governance = _guardian;
+    }
+
+    function setGovernance(address _governance) external {
+        _onlyGovernance();
+        governance = _governance;
     }
 
     /// ===== Internal Implementations =====
@@ -116,6 +142,8 @@ contract IbbtcVaultZap is PausableUpgradeable {
     /// ===== Public Functions =====
 
     function deposit(uint256[4] calldata _amounts) public whenNotPaused {
+        // TODO: Revert early on blockLock
+
         uint256[4] memory depositAmounts;
 
         for (uint256 i = 0; i < 4; i++) {
