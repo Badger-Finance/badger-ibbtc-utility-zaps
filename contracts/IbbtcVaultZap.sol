@@ -180,6 +180,6 @@ contract IbbtcVaultZap is PausableUpgradeable {
         ISett(IBBTC_VAULT).depositFor(msg.sender, vaultDepositAmount);
         uint256 balanceAfter = IBBTC_VAULT.balanceOf(msg.sender);
 
-        require(balanceAfter.sub(balanceBefore) > _minOut, "Slippage Check");
+        require(balanceAfter.sub(balanceBefore) >= _minOut, "Slippage Check");
     }
 }
