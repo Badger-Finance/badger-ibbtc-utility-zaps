@@ -2,11 +2,9 @@ import pytest
 from conftest import MAX_UINT256
 
 
-@pytest.fixture(autouse=True)
-def ibbtc_vault_zap(IbbtcVaultZap, deployer):
-    zap = IbbtcVaultZap.deploy({"from": deployer})
-    zap.initialize(deployer, deployer, {"from": deployer})
-    yield zap
+@pytest.fixture(scope="session")
+def wibbtc(Contract):
+    yield Contract("0x8751D4196027d4e6DA63716fA7786B5174F04C15")
 
 
 @pytest.fixture(scope="session")
@@ -15,18 +13,20 @@ def bcrvIbbtc(Contract):
 
 
 @pytest.fixture(scope="session")
+def curve_ibbtc_pool(Contract):
+    yield Contract("0xFbdCA68601f835b27790D98bbb8eC7f05FDEaA9B")
+
+
+@pytest.fixture(scope="session")
 def curve_ibbtc_zap(Contract):
     yield Contract("0xbba4b444FD10302251d9F5797E763b0d912286A1")
 
 
-@pytest.fixture(scope="session")
-def wibbtc(Contract):
-    yield Contract("0x8751D4196027d4e6DA63716fA7786B5174F04C15")
-
-
-@pytest.fixture(scope="session")
-def curve_ibbtc_pool(Contract):
-    yield Contract("0xFbdCA68601f835b27790D98bbb8eC7f05FDEaA9B")
+@pytest.fixture(autouse=True)
+def ibbtc_vault_zap(IbbtcVaultZap, deployer):
+    zap = IbbtcVaultZap.deploy({"from": deployer})
+    zap.initialize(deployer, deployer, {"from": deployer})
+    yield zap
 
 
 @pytest.fixture(autouse=True)

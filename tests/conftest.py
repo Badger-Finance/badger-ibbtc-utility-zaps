@@ -29,11 +29,6 @@ def ibbtc(Contract):
 
 
 @pytest.fixture(scope="session")
-def wibbtc(Contract):
-    yield Contract("0x8751D4196027d4e6DA63716fA7786B5174F04C15")
-
-
-@pytest.fixture(scope="session")
 def sbtc_pool(Contract):
     yield Contract("0x7fC77b5c7614E1533320Ea6DDc2Eb61fa00A9714")
 
@@ -41,11 +36,6 @@ def sbtc_pool(Contract):
 @pytest.fixture(scope="session")
 def router(Contract):
     yield Contract("0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F")
-
-
-@pytest.fixture(scope="session")
-def deployer(accounts):
-    yield accounts[0]
 
 
 @pytest.fixture(scope="session")
@@ -61,6 +51,11 @@ def bcrvRenbtc(Contract):
 @pytest.fixture(scope="session")
 def ibbtc_guestlist(Contract):
     yield Contract("0x1B4233242BeCfd8C1d517158406Bf0Ed19Be2AFe")
+
+
+@pytest.fixture(scope="session")
+def deployer(accounts):
+    yield accounts[0]
 
 
 @pytest.fixture(autouse=True)
