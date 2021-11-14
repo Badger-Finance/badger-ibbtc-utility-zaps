@@ -19,6 +19,16 @@ def curve_ibbtc_zap(Contract):
     yield Contract("0xbba4b444FD10302251d9F5797E763b0d912286A1")
 
 
+@pytest.fixture(scope="session")
+def wibbtc(Contract):
+    yield Contract("0x8751D4196027d4e6DA63716fA7786B5174F04C15")
+
+
+@pytest.fixture(scope="session")
+def curve_ibbtc_pool(Contract):
+    yield Contract("0xFbdCA68601f835b27790D98bbb8eC7f05FDEaA9B")
+
+
 @pytest.fixture(autouse=True)
 def set_token_approvals(deployer, ibbtc, wbtc, renbtc, sbtc, ibbtc_vault_zap):
     # Approvals
@@ -38,6 +48,7 @@ def set_contract_approvals(
     bcrvIbbtc,
     wibbtc,
     curve_ibbtc_zap,
+    curve_ibbtc_pool,
 ):
     # ibbtc_mint_zap.approveContractAccess(
     #     ibbtc_vault_zap, {"from": ibbtc_mint_zap.governance()}
@@ -55,6 +66,7 @@ def set_contract_approvals(
     role = wibbtc.APPROVED_ACCOUNT_ROLE()
     admin = wibbtc.getRoleMember(wibbtc.getRoleAdmin(role), 0)
     wibbtc.grantRole(role, curve_ibbtc_zap, {"from": admin})
+    wibbtc.grantRole(role, curve_ibbtc_pool, {"from": admin})
 
 
 # TODO: Add permissions tests and more balance checks
