@@ -187,7 +187,7 @@ contract IbbtcVaultZap is PausableUpgradeable {
 
         uint256 balanceBefore = IBBTC_VAULT.balanceOf(msg.sender);
         // deposit crv lp tokens into vault
-        ISett(IBBTC_VAULT).depositFor(msg.sender, vaultDepositAmount);
+        IBBTC_VAULT.depositFor(msg.sender, vaultDepositAmount);
         uint256 balanceAfter = IBBTC_VAULT.balanceOf(msg.sender);
 
         require(balanceAfter.sub(balanceBefore) >= _minOut, "Slippage Check");
