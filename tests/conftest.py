@@ -29,6 +29,11 @@ def ibbtc(Contract):
 
 
 @pytest.fixture(scope="session")
+def wibbtc(Contract):
+    yield Contract("0x8751D4196027d4e6DA63716fA7786B5174F04C15")
+
+
+@pytest.fixture(scope="session")
 def sbtc_pool(Contract):
     yield Contract("0x7fC77b5c7614E1533320Ea6DDc2Eb61fa00A9714")
 
@@ -44,35 +49,18 @@ def deployer(accounts):
 
 
 @pytest.fixture(scope="session")
-def ren_vault(Contract):
-    yield Contract("0x6dEf55d2e18486B9dDfaA075bc4e4EE0B28c1545")
-
-
-@pytest.fixture(scope="session")
 def badger_sett_peak(Contract):
     yield Contract("0x41671BA1abcbA387b9b2B752c205e22e916BE6e3")
 
 
 @pytest.fixture(scope="session")
-def ibbtc_vault(Contract):
-    yield Contract("0xaE96fF08771a109dc6650a1BdCa62F2d558E40af")
-
-
-# @pytest.fixture(scope="session")
-# def ibbtc_mint_zap(Contract):
-#     yield Contract("0xe8E40093017A3A55B5c2BC3E9CA6a4d208c07734")
+def bcrvRenbtc(Contract):
+    yield Contract("0x6dEf55d2e18486B9dDfaA075bc4e4EE0B28c1545")
 
 
 @pytest.fixture(scope="session")
 def ibbtc_guestlist(Contract):
     yield Contract("0x1B4233242BeCfd8C1d517158406Bf0Ed19Be2AFe")
-
-
-@pytest.fixture(autouse=True)
-def ibbtc_vault_zap(IbbtcVaultZap, deployer):
-    zap = IbbtcVaultZap.deploy({"from": deployer})
-    zap.initialize(deployer, {"from": deployer})
-    yield zap
 
 
 @pytest.fixture(autouse=True)
@@ -100,39 +88,6 @@ def get_tokens(deployer, router, weth, ibbtc, wbtc, sbtc_pool):
     sbtc_pool.exchange(1, 0, 10 ** wbtc.decimals(), 0, {"from": deployer})
     # sbtc
     sbtc_pool.exchange(1, 2, 10 ** wbtc.decimals(), 0, {"from": deployer})
-
-
-@pytest.fixture(autouse=True)
-def set_token_approvals(deployer, ibbtc, wbtc, renbtc, sbtc, ibbtc_vault_zap):
-    # Approvals
-    ibbtc.approve(ibbtc_vault_zap, MAX_UINT256, {"from": deployer})
-    renbtc.approve(ibbtc_vault_zap, MAX_UINT256, {"from": deployer})
-    wbtc.approve(ibbtc_vault_zap, MAX_UINT256, {"from": deployer})
-    sbtc.approve(ibbtc_vault_zap, MAX_UINT256, {"from": deployer})
-
-
-@pytest.fixture(autouse=True)
-def set_contract_approvals(
-    ibbtc_guestlist,
-    badger_sett_peak,
-    ren_vault,
-    # ibbtc_mint_zap,
-    ibbtc_vault_zap,
-    ibbtc_vault,
-):
-    # ibbtc_mint_zap.approveContractAccess(
-    #     ibbtc_vault_zap, {"from": ibbtc_mint_zap.governance()}
-    # )
-    ibbtc_guestlist.setGuests(
-        [ibbtc_vault_zap], [True], {"from": ibbtc_guestlist.owner()}
-    )
-    badger_sett_peak.approveContractAccess(
-        ibbtc_vault_zap, {"from": badger_sett_peak.owner()}
-    )
-    ren_vault.approveContractAccess(ibbtc_vault_zap, {"from": ren_vault.governance()})
-    ibbtc_vault.approveContractAccess(
-        ibbtc_vault_zap, {"from": ibbtc_vault.governance()}
-    )
 
 
 @pytest.fixture(autouse=True)
