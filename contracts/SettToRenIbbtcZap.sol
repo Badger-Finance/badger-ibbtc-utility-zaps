@@ -129,12 +129,14 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
 
     function setGuardian(address _guardian) external {
         _onlyGovernance();
-        governance = _guardian;
+        guardian = _guardian;
+        emit GuardianshipTransferred(guardian);
     }
 
     function setGovernance(address _governance) external {
         _onlyGovernance();
         governance = _governance;
+        emit GovernanceUpdated(governance);
     }
 
     function addZapConfig(
