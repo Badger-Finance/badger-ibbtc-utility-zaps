@@ -62,12 +62,6 @@ def set_contract_approvals(
     bcrvRenbtc.approveContractAccess(ibbtc_vault_zap, {"from": bcrvRenbtc.governance()})
     bcrvIbbtc.approveContractAccess(ibbtc_vault_zap, {"from": bcrvIbbtc.governance()})
 
-    # Grant role to mint wibbtc
-    role = wibbtc.APPROVED_ACCOUNT_ROLE()
-    admin = wibbtc.getRoleMember(wibbtc.getRoleAdmin(role), 0)
-    wibbtc.grantRole(role, curve_ibbtc_zap, {"from": admin})
-    wibbtc.grantRole(role, curve_ibbtc_pool, {"from": admin})
-
 
 # TODO: Add permissions tests and more balance checks
 
