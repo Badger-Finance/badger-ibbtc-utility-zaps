@@ -47,6 +47,9 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
     uint256 public constant SETT_WITHDRAWAL_FEE = 10;
     uint256 public constant MAX_FEE = 10_000;
 
+    event GovernanceUpdated(address indexed newGovernanceAddress);
+    event GuardianshipTransferred(address indexed newGuardianAddress);
+
     function initialize(address _governance, address _guardian)
         public
         initializer
