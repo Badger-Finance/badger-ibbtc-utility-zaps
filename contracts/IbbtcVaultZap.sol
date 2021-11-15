@@ -46,6 +46,9 @@ contract IbbtcVaultZap is PausableUpgradeable {
         IERC20Upgradeable(0xfE18be6b3Bd88A2D2A7f928d00292E7a9963CfC6) // sbtc
     ];
 
+    event GovernanceUpdated(address indexed newGovernanceAddress);
+    event GuardianshipTransferred(address indexed newGuardianAddress);
+
     function initialize(address _guardian, address _governance)
         public
         initializer
@@ -115,12 +118,14 @@ contract IbbtcVaultZap is PausableUpgradeable {
 
     function setGuardian(address _guardian) external {
         _onlyGovernance();
-        governance = _guardian;
+        guardian = _guardian;
+        emit GuardianshipTransferred(guardian);
     }
 
     function setGovernance(address _governance) external {
         _onlyGovernance();
         governance = _governance;
+        emit GovernanceUpdated(governance);
     }
 
     /// ===== Internal Implementations =====
