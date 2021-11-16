@@ -150,10 +150,12 @@ contract IbbtcVaultZap is PausableUpgradeable {
         bool _mintIbbtc
     ) public whenNotPaused {
         // Not block locked by setts
-        require(
-            RENCRV_VAULT.blockLock(address(this)) < block.number,
-            "blockLocked"
-        );
+        if (_mintIbbtc && (_amounts[1] > 0 || _amounts[2] > 0)) {
+            require(
+                RENCRV_VAULT.blockLock(address(this)) < block.number,
+                "blockLocked"
+            );
+        }
         require(
             IBBTC_VAULT.blockLock(address(this)) < block.number,
             "blockLocked"
