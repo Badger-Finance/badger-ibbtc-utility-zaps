@@ -171,7 +171,7 @@ contract IbbtcVaultZap is PausableUpgradeable {
                 );
                 if (i == 0 || i == 3) {
                     // ibbtc and sbtc
-                    depositAmounts[i] += _amounts[i];
+                    depositAmounts[i] = depositAmounts[i].add(_amounts[i]);
                 }
             }
         }
@@ -179,7 +179,7 @@ contract IbbtcVaultZap is PausableUpgradeable {
         if (_amounts[1] > 0 || _amounts[2] > 0) {
             // Use renbtc and wbtc to mint ibbtc
             // NOTE: Can change to external zap if implemented
-            depositAmounts[0] += _renZapToIbbtc([_amounts[1], _amounts[2]]);
+            depositAmounts[0] = depositAmounts[0].add(_renZapToIbbtc([_amounts[1], _amounts[2]]));
         }
 
         // deposit into the crv by using ibbtc curve deposit zap
