@@ -116,7 +116,7 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
         );
     }
 
-    /// ===== Permissioned Actions: Guardian =====
+    /// ===== Permissioned Actions: Governance or Guardian =====
 
     function pause() external {
         _onlyGovernanceOrGuardian();
