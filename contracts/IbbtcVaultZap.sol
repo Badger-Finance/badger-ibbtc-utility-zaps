@@ -72,7 +72,7 @@ contract IbbtcVaultZap is PausableUpgradeable {
         );
 
         // ibbtc, renbtc, wbtc, sbtc approvals for ibbtc curve zap
-        for (uint256 i = 0; i < 4; i++) {
+        for (uint256 i; i < 4; i++) {
             ASSETS[i].safeApprove(
                 address(CURVE_IBBTC_DEPOSIT_ZAP),
                 type(uint256).max
@@ -150,10 +150,12 @@ contract IbbtcVaultZap is PausableUpgradeable {
         bool _mintIbbtc
     ) public whenNotPaused {
         // Not block locked by setts
-        require(
-            RENCRV_VAULT.blockLock(address(this)) < block.number,
-            "blockLocked"
-        );
+        if (_mintIbbtc && (_amounts[1] > 0 || _amounts[2] > 0)) {
+            require(
+                RENCRV_VAULT.blockLock(address(this)) < block.number,
+                "blockLocked"
+            );
+        }
         require(
             IBBTC_VAULT.blockLock(address(this)) < block.number,
             "blockLocked"
@@ -161,7 +163,7 @@ contract IbbtcVaultZap is PausableUpgradeable {
 
         uint256[4] memory depositAmounts;
 
-        for (uint256 i = 0; i < 4; i++) {
+        for (uint256 i; i < 4; i++) {
             if (_amounts[i] > 0) {
                 ASSETS[i].safeTransferFrom(
                     msg.sender,
