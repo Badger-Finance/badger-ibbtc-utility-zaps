@@ -71,15 +71,13 @@ contract IbbtcVaultZap is PausableUpgradeable {
             type(uint256).max
         );
 
-        // ibbtc and sbtc approvals for zap
-        ASSETS[0].safeApprove(
-            address(CURVE_IBBTC_DEPOSIT_ZAP),
-            type(uint256).max
-        );
-        ASSETS[3].safeApprove(
-            address(CURVE_IBBTC_DEPOSIT_ZAP),
-            type(uint256).max
-        );
+        // ibbtc, renbtc, wbtc, sbtc approvals for ibbtc curve zap
+        for (uint256 i = 0; i < 4; i++) {
+            ASSETS[i].safeApprove(
+                address(CURVE_IBBTC_DEPOSIT_ZAP),
+                type(uint256).max
+            );
+        }
 
         /// @dev approve the metapool tokens for vault to use
         /// @notice the address of metapool token is same as metapool address
@@ -146,10 +144,11 @@ contract IbbtcVaultZap is PausableUpgradeable {
 
     /// ===== Public Functions =====
 
-    function deposit(uint256[4] calldata _amounts, uint256 _minOut)
-        public
-        whenNotPaused
-    {
+    function deposit(
+        uint256[4] calldata _amounts,
+        uint256 _minOut,
+        bool _mintIbbtc
+    ) public whenNotPaused {
         // Not block locked by setts
         require(
             RENCRV_VAULT.blockLock(address(this)) < block.number,
@@ -162,24 +161,38 @@ contract IbbtcVaultZap is PausableUpgradeable {
 
         uint256[4] memory depositAmounts;
 
-        for (uint256 i = 0; i < 4; i++) {
-            if (_amounts[i] > 0) {
-                ASSETS[i].safeTransferFrom(
-                    msg.sender,
-                    address(this),
-                    _amounts[i]
-                );
-                if (i == 0 || i == 3) {
-                    // ibbtc and sbtc
-                    depositAmounts[i] = depositAmounts[i].add(_amounts[i]);
+        if (_mintIbbtc == true) {
+            for (uint256 i = 0; i < 4; i++) {
+                if (_amounts[i] > 0) {
+                    ASSETS[i].safeTransferFrom(
+                        msg.sender,
+                        address(this),
+                        _amounts[i]
+                    );
+                    if (i == 0 || i == 3) {
+                        // ibbtc and sbtc
+                        depositAmounts[i] = depositAmounts[i].add(_amounts[i]);
+                    }
                 }
             }
-        }
-
-        if (_amounts[1] > 0 || _amounts[2] > 0) {
-            // Use renbtc and wbtc to mint ibbtc
-            // NOTE: Can change to external zap if implemented
-            depositAmounts[0] = depositAmounts[0].add(_renZapToIbbtc([_amounts[1], _amounts[2]]));
+            if (_amounts[1] != 0 || _amounts[2] != 0) {
+                // Use renbtc and wbtc to mint ibbtc
+                // NOTE: Can change to external zap if implemented
+                depositAmounts[0] = depositAmounts[0].add(
+                    _renZapToIbbtc([_amounts[1], _amounts[2]])
+                );
+            }
+        } else {
+            for (uint256 i = 0; i < 4; i++) {
+                if (_amounts[i] > 0) {
+                    ASSETS[i].safeTransferFrom(
+                        msg.sender,
+                        address(this),
+                        _amounts[i]
+                    );
+                    depositAmounts[i] = _amounts[i];
+                }
+            }
         }
 
         // deposit into the crv by using ibbtc curve deposit zap

@@ -76,6 +76,23 @@ def test_deposit_flow(deployer, ibbtc, renbtc, wbtc, sbtc, bcrvIbbtc, ibbtc_vaul
     ]
 
     shares = bcrvIbbtc.balanceOf(deployer)
-    ibbtc_vault_zap.deposit(amounts, 0, {"from": deployer})
+    ibbtc_vault_zap.deposit(amounts, 0, False, {"from": deployer})
+
+    assert bcrvIbbtc.balanceOf(deployer) > shares
+
+
+def test_deposit_flow_no_mint(
+    deployer, ibbtc, renbtc, wbtc, sbtc, bcrvIbbtc, ibbtc_vault_zap
+):
+    # add ibbtc liquidity
+    amounts = [
+        ibbtc.balanceOf(deployer) // 10,
+        renbtc.balanceOf(deployer) // 10,
+        wbtc.balanceOf(deployer) // 10,
+        sbtc.balanceOf(deployer) // 10,
+    ]
+
+    shares = bcrvIbbtc.balanceOf(deployer)
+    ibbtc_vault_zap.deposit(amounts, 0, True, {"from": deployer})
 
     assert bcrvIbbtc.balanceOf(deployer) > shares
