@@ -161,38 +161,26 @@ contract IbbtcVaultZap is PausableUpgradeable {
 
         uint256[4] memory depositAmounts;
 
-        if (_mintIbbtc == true) {
-            for (uint256 i = 0; i < 4; i++) {
-                if (_amounts[i] > 0) {
-                    ASSETS[i].safeTransferFrom(
-                        msg.sender,
-                        address(this),
-                        _amounts[i]
-                    );
-                    if (i == 0 || i == 3) {
-                        // ibbtc and sbtc
-                        depositAmounts[i] = depositAmounts[i].add(_amounts[i]);
-                    }
-                }
-            }
-            if (_amounts[1] != 0 || _amounts[2] != 0) {
-                // Use renbtc and wbtc to mint ibbtc
-                // NOTE: Can change to external zap if implemented
-                depositAmounts[0] = depositAmounts[0].add(
-                    _renZapToIbbtc([_amounts[1], _amounts[2]])
+        for (uint256 i = 0; i < 4; i++) {
+            if (_amounts[i] > 0) {
+                ASSETS[i].safeTransferFrom(
+                    msg.sender,
+                    address(this),
+                    _amounts[i]
                 );
-            }
-        } else {
-            for (uint256 i = 0; i < 4; i++) {
-                if (_amounts[i] > 0) {
-                    ASSETS[i].safeTransferFrom(
-                        msg.sender,
-                        address(this),
-                        _amounts[i]
-                    );
+                if (!_mintIbbtc || i == 0 || i == 3) {
+                    // ibbtc or sbtc or _mintIbbtc is false
                     depositAmounts[i] = _amounts[i];
                 }
             }
+        }
+
+        if (_mintIbbtc && (_amounts[1] > 0 || _amounts[2] > 0)) {
+            // Use renbtc and wbtc to mint ibbtc
+            // NOTE: Can change to external zap if implemented
+            depositAmounts[0] = depositAmounts[0].add(
+                _renZapToIbbtc([_amounts[1], _amounts[2]])
+            );
         }
 
         // deposit into the crv by using ibbtc curve deposit zap
