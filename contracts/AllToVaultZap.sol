@@ -112,6 +112,16 @@ contract AllToVaultZap is PausableUpgradeable {
             "blockLocked"
         );
 
+        for (uint256 i = 0; i < 4; i++) {
+            if (_amounts[i] > 0) {
+                ASSETS[i].safeTransferFrom(
+                    msg.sender,
+                    address(this),
+                    _amounts[i]
+                );
+            }
+        }
+
         // deposit into the crv by using ibbtc curve deposit zap
         uint256 vaultDepositAmount = CURVE_IBBTC_DEPOSIT_ZAP.add_liquidity(
             CURVE_IBBTC_METAPOOL,
