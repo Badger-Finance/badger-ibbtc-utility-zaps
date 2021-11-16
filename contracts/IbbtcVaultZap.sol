@@ -39,12 +39,15 @@ contract IbbtcVaultZap is PausableUpgradeable {
     ISett public constant IBBTC_VAULT =
         ISett(0xaE96fF08771a109dc6650a1BdCa62F2d558E40af); // Ibbtc crv lp badger vault
 
-    IERC20Upgradeable[] public ASSETS = [
-        IERC20Upgradeable(0xc4E15973E6fF2A35cC804c2CF9D2a1b817a8b40F), // ibbtc
-        IERC20Upgradeable(0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D), // renbtc
-        IERC20Upgradeable(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599), // wbtc
-        IERC20Upgradeable(0xfE18be6b3Bd88A2D2A7f928d00292E7a9963CfC6) // sbtc
-    ];
+    // BTCs
+    IERC20Upgradeable public constant IBBTC =
+        IERC20Upgradeable(0xc4E15973E6fF2A35cC804c2CF9D2a1b817a8b40F);
+    IERC20Upgradeable public constant RENBTC =
+        IERC20Upgradeable(0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D);
+    IERC20Upgradeable public constant WBTC =
+        IERC20Upgradeable(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
+    IERC20Upgradeable public constant SBTC =
+        IERC20Upgradeable(0xfE18be6b3Bd88A2D2A7f928d00292E7a9963CfC6);
 
     event GovernanceUpdated(address indexed newGovernanceAddress);
     event GuardianshipTransferred(address indexed newGuardianAddress);
@@ -61,8 +64,8 @@ contract IbbtcVaultZap is PausableUpgradeable {
         governance = _governance;
 
         // renbtc and wbtc approvals for curve pool
-        ASSETS[1].safeApprove(address(CURVE_REN_POOL), type(uint256).max);
-        ASSETS[2].safeApprove(address(CURVE_REN_POOL), type(uint256).max);
+        RENBTC.safeApprove(address(CURVE_REN_POOL), type(uint256).max);
+        WBTC.safeApprove(address(CURVE_REN_POOL), type(uint256).max);
         // renCrv approval for sett
         RENCRV_TOKEN.safeApprove(address(RENCRV_VAULT), type(uint256).max);
         // bToken approval for peak
@@ -72,8 +75,9 @@ contract IbbtcVaultZap is PausableUpgradeable {
         );
 
         // ibbtc, renbtc, wbtc, sbtc approvals for ibbtc curve zap
+        IERC20Upgradeable[4] memory assets = [IBBTC, RENBTC, WBTC, SBTC];
         for (uint256 i; i < 4; i++) {
-            ASSETS[i].safeApprove(
+            assets[i].safeApprove(
                 address(CURVE_IBBTC_DEPOSIT_ZAP),
                 type(uint256).max
             );
@@ -163,9 +167,10 @@ contract IbbtcVaultZap is PausableUpgradeable {
 
         uint256[4] memory depositAmounts;
 
+        IERC20Upgradeable[4] memory assets = [IBBTC, RENBTC, WBTC, SBTC];
         for (uint256 i; i < 4; i++) {
             if (_amounts[i] > 0) {
-                ASSETS[i].safeTransferFrom(
+                assets[i].safeTransferFrom(
                     msg.sender,
                     address(this),
                     _amounts[i]

@@ -46,9 +46,6 @@ def set_contract_approvals(
     # ibbtc_mint_zap,
     ibbtc_vault_zap,
     bcrvIbbtc,
-    wibbtc,
-    curve_ibbtc_zap,
-    curve_ibbtc_pool,
 ):
     # ibbtc_mint_zap.approveContractAccess(
     #     ibbtc_vault_zap, {"from": ibbtc_mint_zap.governance()}
