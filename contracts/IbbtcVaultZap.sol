@@ -197,6 +197,37 @@ contract IbbtcVaultZap is PausableUpgradeable {
         return _vaultShares(crvLp);
     }
 
+    function expectedAmount(uint256[4] calldata _amounts, bool _mintIbbtc)
+        public
+        view
+        returns (uint256)
+    {
+        uint256[4] memory depositAmounts;
+        uint256 sum;
+        for (uint256 i = 0; i < 4; i++) {
+            if (_amounts[i] > 0) {
+                if (!_mintIbbtc || i == 0 || i == 3) {
+                    depositAmounts[i] = _amounts[i];
+                }
+            }
+        }
+        if (_mintIbbtc && (_amounts[1] > 0 || _amounts[2] > 0)) {
+            // Use renbtc and wbtc to mint ibbtc
+            // NOTE: Can change to external zap if implemented
+            depositAmounts[0] = depositAmounts[0].add(
+                _calcIbbtcMint([_amounts[1], _amounts[2]])
+            );
+        }
+        IERC20Upgradeable[4] memory assets = [IBBTC, RENBTC, WBTC, SBTC];
+        uint256 virtualPrice = CURVE_REN_POOL.get_virtual_price();
+        for (uint256 i = 0; i < 4; i++) {
+            sum = sum.add(
+                depositAmounts[i].mul(virtualPrice).div(assets[i].decimals())
+            );
+        }
+        return sum;
+    }
+
     function deposit(
         uint256[4] calldata _amounts,
         uint256 _minOut,
