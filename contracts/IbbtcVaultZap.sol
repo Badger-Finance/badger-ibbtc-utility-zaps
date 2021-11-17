@@ -161,26 +161,12 @@ contract IbbtcVaultZap is PausableUpgradeable {
     function _calcIbbtcMint(uint256[2] memory _amounts)
         internal
         view
-        returns (uint256 ibbtc)
+        returns (uint256 bBTC)
     {
-        uint256 lp;
-        uint256 amount;
-        uint256 bBTC;
         uint256 fee;
-        uint256 sett;
-        uint256[2] memory depositAmounts;
-        depositAmounts[0] = _amounts[0];
-        for (uint256 i; i < 2; i++) {
-            if (_amounts[i] != 0) {
-                // for renBTC [amount, 0] and wBTC [0, amount]
-                lp = CURVE_REN_POOL.calc_token_amount(depositAmounts, true);
-                sett = lp.mul(1e18).div(RENCRV_VAULT.getPricePerFullShare());
-                (bBTC, fee) = SETT_PEAK.calcMint(0, sett);
-                ibbtc += bBTC;
-            }
-            depositAmounts[0] = 0;
-            depositAmounts[1] = _amounts[1];
-        }
+        uint256 lp = CURVE_REN_POOL.calc_token_amount(_amounts, true);
+        uint256 sett = lp.mul(1e18).div(RENCRV_VAULT.getPricePerFullShare());
+        (bBTC, fee) = SETT_PEAK.calcMint(0, sett);
     }
 
     /// ===== Public Functions =====
