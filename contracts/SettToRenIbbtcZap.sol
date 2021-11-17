@@ -26,7 +26,7 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
         IERC20Upgradeable withdrawToken;
         int128 withdrawTokenIndex;
     }
-    mapping(address => ZapConfig) public settZapConfigs;
+    mapping(address => ZapConfig) public zapConfigs;
 
     IERC20Upgradeable public constant WBTC =
         IERC20Upgradeable(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
@@ -67,49 +67,42 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
         // Add zap configs for setts
         _setZapConfig(
             WBTC_YEARN_SETT, // byvWBTC
-            address(WBTC),
             address(0), // No curve pool
             address(WBTC),
             0 // No curve pool
         );
         _setZapConfig(
             0xd04c48A53c111300aD41190D63681ed3dAd998eC, // bcrvSBTC
-            0x075b1bb99792c9E1041bA13afEf80C91a1e70fB3, // sbtcCrv
             0x7fC77b5c7614E1533320Ea6DDc2Eb61fa00A9714, // sbtcCrv curve pool
             address(WBTC),
             1 // idx - renbtc: 0, wbtc: 1
         );
         _setZapConfig(
             0xb9D076fDe463dbc9f915E5392F807315Bf940334, // bcrvTBTC
-            0x64eda51d3Ad40D56b9dFc5554E06F94e1Dd786Fd, // tbtcCrv
             0xaa82ca713D94bBA7A89CEAB55314F9EfFEdDc78c, // tbtcCrv zap
             address(WBTC),
             2 // idx - renbtc: 1, wbtc: 2
         );
         _setZapConfig(
             0x8c76970747afd5398e958bDfadA4cf0B9FcA16c4, // bcrvHBTC
-            0xb19059ebb43466C323583928285a49f558E572Fd, // hbtcCrv
             0x4CA9b3063Ec5866A4B82E437059D2C43d1be596F, // hbtcCrv curve pool
             address(WBTC),
             1 // idx - wbtc: 1
         );
         _setZapConfig(
             0x5Dce29e92b1b939F8E8C60DcF15BDE82A85be4a9, // bcrvBBTC
-            0x410e3E86ef427e30B9235497143881f717d93c2A, // bbtcCrv
             0xC45b2EEe6e09cA176Ca3bB5f7eEe7C47bF93c756, // bbtcCrv zap
             address(WBTC),
             2 // idx - renbtc: 1, wbtc: 2
         );
         _setZapConfig(
             0x55912D0Cf83B75c492E761932ABc4DB4a5CB1b17, // bcrvPBTC
-            0xDE5331AC4B3630f94853Ff322B66407e0D6331E8, // pbtcCrv
             0x11F419AdAbbFF8d595E7d5b223eee3863Bb3902C, // pbtcCrv zap
             address(WBTC),
             2 // idx - renbtc: 1, wbtc: 2
         );
         _setZapConfig(
             0xf349c0faA80fC1870306Ac093f75934078e28991, // bcrvOBTC
-            0x2fE94ea3d5d4a175184081439753DE15AeF9d614, // obtcCrv
             0xd5BCf53e2C81e1991570f33Fa881c49EEa570C8D, // obtcCrv zap
             address(WBTC),
             2 // idx - renbtc: 1, wbtc: 2
@@ -157,19 +150,12 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
 
     function setZapConfig(
         address _sett,
-        address _token,
         address _curvePool,
         address _withdrawToken,
         int128 _withdrawTokenIndex
     ) external {
         _onlyGovernance();
-        _setZapConfig(
-            _sett,
-            _token,
-            _curvePool,
-            _withdrawToken,
-            _withdrawTokenIndex
-        );
+        _setZapConfig(_sett, _curvePool, _withdrawToken, _withdrawTokenIndex);
     }
 
     function setZapConfigWithdrawToken(
@@ -179,42 +165,39 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
     ) external {
         _onlyGovernance();
 
-        require(address(settZapConfigs[_sett].token) != address(0));
+        require(address(zapConfigs[_sett].token) != address(0));
         require(
             _withdrawToken == address(WBTC) || _withdrawToken == address(RENBTC)
         );
 
-        settZapConfigs[_sett].withdrawToken = IERC20Upgradeable(_withdrawToken);
-        settZapConfigs[_sett].withdrawTokenIndex = _withdrawTokenIndex;
+        zapConfigs[_sett].withdrawToken = IERC20Upgradeable(_withdrawToken);
+        zapConfigs[_sett].withdrawTokenIndex = _withdrawTokenIndex;
     }
 
     /// ===== Internal Implementations =====
 
     function _setZapConfig(
         address _sett,
-        address _token,
         address _curvePool,
         address _withdrawToken,
         int128 _withdrawTokenIndex
     ) internal {
         require(_sett != address(0));
-        require(_token != address(0));
         require(
             _withdrawToken == address(WBTC) || _withdrawToken == address(RENBTC)
         );
 
-        settZapConfigs[_sett] = ZapConfig({
-            token: IERC20Upgradeable(_token),
+        IERC20Upgradeable token = IERC20Upgradeable(ISett(_sett).token());
+
+        zapConfigs[_sett] = ZapConfig({
+            token: token,
             curvePool: ICurveFi(_curvePool),
             withdrawToken: IERC20Upgradeable(_withdrawToken),
             withdrawTokenIndex: _withdrawTokenIndex
         });
         if (_curvePool != address(0)) {
-            IERC20Upgradeable(_token).safeApprove(_curvePool, 0);
-            IERC20Upgradeable(_token).safeApprove(
-                _curvePool,
-                type(uint256).max
-            );
+            token.safeApprove(_curvePool, 0);
+            token.safeApprove(_curvePool, type(uint256).max);
         }
     }
 
@@ -225,7 +208,7 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
         view
         returns (uint256)
     {
-        ZapConfig memory zapConfig = settZapConfigs[_sett];
+        ZapConfig memory zapConfig = zapConfigs[_sett];
 
         // Check if valid sett
         require(address(zapConfig.token) != address(0));
@@ -274,7 +257,7 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
         uint256 _shares,
         uint256 _minOut
     ) public whenNotPaused returns (uint256) {
-        ZapConfig memory zapConfig = settZapConfigs[_sett];
+        ZapConfig memory zapConfig = zapConfigs[_sett];
 
         // Valid sett
         require(address(zapConfig.token) != address(0));
