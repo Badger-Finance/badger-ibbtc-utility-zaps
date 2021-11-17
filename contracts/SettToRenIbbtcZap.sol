@@ -100,6 +100,20 @@ contract SettToRenIbbtcZap is PausableUpgradeable {
             address(WBTC),
             2 // idx - renbtc: 1, wbtc: 2
         );
+        _setZapConfig(
+            0x55912D0Cf83B75c492E761932ABc4DB4a5CB1b17, // bcrvPBTC
+            0xDE5331AC4B3630f94853Ff322B66407e0D6331E8, // pbtcCrv
+            0x11F419AdAbbFF8d595E7d5b223eee3863Bb3902C, // pbtcCrv zap
+            address(WBTC),
+            2 // idx - renbtc: 1, wbtc: 2
+        );
+        _setZapConfig(
+            0xf349c0faA80fC1870306Ac093f75934078e28991, // bcrvOBTC
+            0x2fE94ea3d5d4a175184081439753DE15AeF9d614, // obtcCrv
+            0xd5BCf53e2C81e1991570f33Fa881c49EEa570C8D, // obtcCrv zap
+            address(WBTC),
+            2 // idx - renbtc: 1, wbtc: 2
+        );
     }
 
     /// ===== Modifiers =====
