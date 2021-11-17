@@ -151,11 +151,7 @@ contract IbbtcVaultZap is PausableUpgradeable {
         view
         returns (uint256 shares)
     {
-        uint256 totalSupply = IBBTC_VAULT.totalSupply();
-        shares = _amount;
-        if (totalSupply != 0) {
-            shares = (_amount.mul(totalSupply)).div(IBBTC_VAULT.balance());
-        }
+        shares = _amount.mul(1e18).div(IBBTC_VAULT.getPricePerFullShare());
     }
 
     function _calcIbbtcMint(uint256[2] memory _amounts)
