@@ -29,6 +29,9 @@ def ibbtc_vault_zap(IbbtcVaultZap, deployer):
     yield zap
 
 
+SLIPPAGE = 0.99
+
+
 @pytest.fixture(autouse=True)
 def set_token_approvals(deployer, ibbtc, wbtc, renbtc, sbtc, ibbtc_vault_zap):
     # Approvals
@@ -63,7 +66,9 @@ def set_contract_approvals(
 # TODO: Add permissions tests and more balance checks
 
 
-def test_deposit_flow(deployer, ibbtc, renbtc, wbtc, sbtc, bcrvIbbtc, ibbtc_vault_zap):
+def test_deposit_flow_mint(
+    deployer, ibbtc, renbtc, wbtc, sbtc, bcrvIbbtc, ibbtc_vault_zap
+):
     # add ibbtc liquidity
     amounts = [
         ibbtc.balanceOf(deployer) // 10,
@@ -73,9 +78,12 @@ def test_deposit_flow(deployer, ibbtc, renbtc, wbtc, sbtc, bcrvIbbtc, ibbtc_vaul
     ]
 
     shares = bcrvIbbtc.balanceOf(deployer)
-    ibbtc_vault_zap.deposit(amounts, 0, False, {"from": deployer})
 
-    assert bcrvIbbtc.balanceOf(deployer) > shares
+    minAmount = ibbtc_vault_zap.calcMint(amounts, True)
+
+    ibbtc_vault_zap.deposit(amounts, minAmount * SLIPPAGE, True, {"from": deployer})
+
+    assert bcrvIbbtc.balanceOf(deployer) - shares >= minAmount * SLIPPAGE
 
 
 def test_deposit_flow_no_mint(
@@ -90,6 +98,8 @@ def test_deposit_flow_no_mint(
     ]
 
     shares = bcrvIbbtc.balanceOf(deployer)
-    ibbtc_vault_zap.deposit(amounts, 0, True, {"from": deployer})
+    minAmount = ibbtc_vault_zap.calcMint(amounts, False)
 
-    assert bcrvIbbtc.balanceOf(deployer) > shares
+    ibbtc_vault_zap.deposit(amounts, minAmount * SLIPPAGE, False, {"from": deployer})
+
+    assert bcrvIbbtc.balanceOf(deployer) - shares >= minAmount * SLIPPAGE
