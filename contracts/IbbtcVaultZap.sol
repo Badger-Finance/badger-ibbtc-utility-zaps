@@ -146,7 +146,75 @@ contract IbbtcVaultZap is PausableUpgradeable {
             );
     }
 
+    function _vaultShares(uint256 _amount)
+        internal
+        view
+        returns (uint256 shares)
+    {
+        uint256 totalSupply = IBBTC_VAULT.totalSupply();
+        shares = _amount;
+        if (totalSupply != 0) {
+            shares = (_amount.mul(totalSupply)).div(IBBTC_VAULT.balance());
+        }
+    }
+
+    function _calcIbbtcMint(uint256[2] memory _amounts)
+        internal
+        view
+        returns (uint256 ibbtc)
+    {
+        uint256 lp;
+        uint256 amount;
+        uint256 bBTC;
+        uint256 fee;
+        uint256 sett;
+        uint256[2] memory depositAmounts;
+        depositAmounts[0] = _amounts[0];
+        for (uint256 i; i < 2; i++) {
+            if (_amounts[i] != 0) {
+                // for renBTC [amount, 0] and wBTC [0, amount]
+                lp = CURVE_REN_POOL.calc_token_amount(depositAmounts, true);
+                sett = lp.mul(1e18).div(RENCRV_VAULT.getPricePerFullShare());
+                (bBTC, fee) = SETT_PEAK.calcMint(0, sett);
+                ibbtc += bBTC;
+            }
+            depositAmounts[0] = 0;
+            depositAmounts[1] = _amounts[1];
+        }
+    }
+
     /// ===== Public Functions =====
+
+    function calcMint(uint256[4] calldata _amounts, bool _mintIbbtc)
+        public
+        view
+        returns (uint256)
+    {
+        uint256[4] memory depositAmounts;
+
+        for (uint256 i = 0; i < 4; i++) {
+            if (_amounts[i] > 0) {
+                if (!_mintIbbtc || i == 0 || i == 3) {
+                    depositAmounts[i] = _amounts[i];
+                }
+            }
+        }
+        if (_mintIbbtc && (_amounts[1] > 0 || _amounts[2] > 0)) {
+            // Use renbtc and wbtc to mint ibbtc
+            // NOTE: Can change to external zap if implemented
+            depositAmounts[0] = depositAmounts[0].add(
+                _calcIbbtcMint([_amounts[1], _amounts[2]])
+            );
+        }
+
+        uint256 crvLp = CURVE_IBBTC_DEPOSIT_ZAP.calc_token_amount(
+            CURVE_IBBTC_METAPOOL,
+            depositAmounts,
+            true
+        );
+
+        return _vaultShares(crvLp);
+    }
 
     function deposit(
         uint256[4] calldata _amounts,

@@ -8,4 +8,10 @@ interface ICurveZap {
         uint256 _min_mint_amount,
         address _receiver
     ) external returns (uint256);
+
+    function calc_token_amount(
+        address _pool,
+        uint256[4] calldata _amounts,
+        bool _is_deposit
+    ) external view returns (uint256);
 }
