@@ -163,10 +163,9 @@ contract IbbtcVaultZap is PausableUpgradeable {
         view
         returns (uint256 bBTC)
     {
-        uint256 fee;
         uint256 lp = CURVE_REN_POOL.calc_token_amount(_amounts, true);
         uint256 sett = lp.mul(1e18).div(RENCRV_VAULT.getPricePerFullShare());
-        (bBTC, fee) = SETT_PEAK.calcMint(0, sett);
+        (bBTC, ) = SETT_PEAK.calcMint(0, sett);
     }
 
     /// ===== Public Functions =====
