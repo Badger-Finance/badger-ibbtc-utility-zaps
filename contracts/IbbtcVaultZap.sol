@@ -165,15 +165,11 @@ contract IbbtcVaultZap is PausableUpgradeable {
         (bBTC, ) = SETT_PEAK.calcMint(0, sett);
     }
 
-    /// ===== Public Functions =====
-
-    function calcMint(uint256[4] calldata _amounts, bool _mintIbbtc)
-        public
+    function _constructDeposit(uint256[4] memory _amounts, bool _mintIbbtc)
+        internal
         view
-        returns (uint256)
+        returns (uint256[4] memory depositAmounts)
     {
-        uint256[4] memory depositAmounts;
-
         for (uint256 i = 0; i < 4; i++) {
             if (_amounts[i] > 0) {
                 if (!_mintIbbtc || i == 0 || i == 3) {
@@ -188,6 +184,19 @@ contract IbbtcVaultZap is PausableUpgradeable {
                 _calcIbbtcMint([_amounts[1], _amounts[2]])
             );
         }
+    }
+
+    /// ===== Public Functions =====
+
+    function calcMint(uint256[4] calldata _amounts, bool _mintIbbtc)
+        public
+        view
+        returns (uint256)
+    {
+        uint256[4] memory depositAmounts = _constructDeposit(
+            _amounts,
+            _mintIbbtc
+        );
 
         uint256 crvLp = CURVE_IBBTC_DEPOSIT_ZAP.calc_token_amount(
             CURVE_IBBTC_METAPOOL,
@@ -203,21 +212,11 @@ contract IbbtcVaultZap is PausableUpgradeable {
         view
         returns (uint256 amount)
     {
-        uint256[4] memory depositAmounts;
-        for (uint256 i = 0; i < 4; i++) {
-            if (_amounts[i] > 0) {
-                if (!_mintIbbtc || i == 0 || i == 3) {
-                    depositAmounts[i] = _amounts[i];
-                }
-            }
-        }
-        if (_mintIbbtc && (_amounts[1] > 0 || _amounts[2] > 0)) {
-            // Use renbtc and wbtc to mint ibbtc
-            // NOTE: Can change to external zap if implemented
-            depositAmounts[0] = depositAmounts[0].add(
-                _calcIbbtcMint([_amounts[1], _amounts[2]])
-            );
-        }
+        uint256[4] memory depositAmounts = _constructDeposit(
+            _amounts,
+            _mintIbbtc
+        );
+
         ERC20Upgradeable[4] memory assets = [
             ERC20Upgradeable(address(IBBTC)),
             ERC20Upgradeable(address(RENBTC)),
