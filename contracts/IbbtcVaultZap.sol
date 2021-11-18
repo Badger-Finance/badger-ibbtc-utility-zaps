@@ -219,21 +219,28 @@ contract IbbtcVaultZap is PausableUpgradeable {
                 _calcIbbtcMint([_amounts[1], _amounts[2]])
             );
         }
-        ERC20Upgradeable[4] memory assets = [ERC20Upgradeable(address(IBBTC)), ERC20Upgradeable(address(RENBTC)), ERC20Upgradeable(address(WBTC)), ERC20Upgradeable(address(SBTC))];
+        ERC20Upgradeable[4] memory assets = [
+            ERC20Upgradeable(address(IBBTC)),
+            ERC20Upgradeable(address(RENBTC)),
+            ERC20Upgradeable(address(WBTC)),
+            ERC20Upgradeable(address(SBTC))
+        ];
         uint256 virtualPrice = CURVE_REN_POOL.get_virtual_price();
         for (uint256 i = 0; i < 4; i++) {
             sum = sum.add(
-                depositAmounts[i].mul(1e36).div(virtualPrice).div(10**uint256(assets[i].decimals()))
+                depositAmounts[i].mul(1e36).div(virtualPrice).div(
+                    10**uint256(assets[i].decimals())
+                )
             );
         }
-        return sum.mul(9996).div(10000);
+        return sum;
     }
 
     function deposit(
         uint256[4] calldata _amounts,
         uint256 _minOut,
         bool _mintIbbtc
-    ) public  whenNotPaused returns (uint256 amountOut) {
+    ) public whenNotPaused returns (uint256 amountOut) {
         // Not block locked by setts
         if (_mintIbbtc && (_amounts[1] > 0 || _amounts[2] > 0)) {
             require(

@@ -9,23 +9,38 @@ Tests for the Upgrade from mainnet version to upgraded version
 These tests must be run on mainnet-fork
 """
 
+
 @pytest.fixture
 def zap_proxy():
     yield Contract("0x87C3Ef099c6143e4687b060285bad201b9efa493")
+
 
 @pytest.fixture
 def proxy_admin():
     return Contract("0x7D0398D7D7432c47Dffc942Cd097B9eA3d88C385")
 
+
 @pytest.fixture
 def proxy_admin_owner():
     yield "0x86cbd0ce0c087b482782c181da8d191de18c8275"
+
 
 @pytest.fixture(scope="session")
 def bcrvIbbtc(Contract):
     yield Contract("0xaE96fF08771a109dc6650a1BdCa62F2d558E40af")
 
-def test_upgrade_and_harvest(deployer, zap_proxy, proxy_admin, proxy_admin_owner, ibbtc, renbtc, wbtc, sbtc, bcrvIbbtc):
+
+def test_upgrade_and_harvest(
+    deployer,
+    zap_proxy,
+    proxy_admin,
+    proxy_admin_owner,
+    ibbtc,
+    renbtc,
+    wbtc,
+    sbtc,
+    bcrvIbbtc,
+):
     new_zap_logic = IbbtcVaultZap.deploy({"from": deployer})
 
     ## Setting all variables, we'll use them later
@@ -41,7 +56,7 @@ def test_upgrade_and_harvest(deployer, zap_proxy, proxy_admin, proxy_admin_owner
     prev_RENBTC = zap_proxy.RENBTC()
     prev_WBTC = zap_proxy.WBTC()
     prev_SBTC = zap_proxy.SBTC()
-    
+
     # Deploy new logic
     proxy_admin.upgrade(zap_proxy, new_zap_logic, {"from": proxy_admin_owner})
 
