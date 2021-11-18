@@ -1,6 +1,4 @@
 from brownie import *
-import brownie
-from dotmap import DotMap
 import pytest
 
 
@@ -30,7 +28,7 @@ def bcrvIbbtc(Contract):
     yield Contract("0xaE96fF08771a109dc6650a1BdCa62F2d558E40af")
 
 
-def test_upgrade_and_harvest(
+def test_upgrade(
     deployer,
     zap_proxy,
     proxy_admin,
@@ -58,7 +56,9 @@ def test_upgrade_and_harvest(
     prev_SBTC = zap_proxy.SBTC()
 
     # Deploy new logic
-    proxy_admin.upgrade(zap_proxy, new_zap_logic, {"from": proxy_admin_owner})
+    proxy_admin.upgrade(zap_proxy, new_zap_logic.address, {"from": proxy_admin_owner})
+
+    assert False
 
     gov = accounts.at(zap_proxy.governance(), force=True)
 
