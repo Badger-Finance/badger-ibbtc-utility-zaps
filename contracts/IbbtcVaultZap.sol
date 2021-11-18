@@ -4,6 +4,7 @@ pragma solidity ^0.6.12;
 
 import "@openzeppelin-contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
@@ -218,11 +219,11 @@ contract IbbtcVaultZap is PausableUpgradeable {
                 _calcIbbtcMint([_amounts[1], _amounts[2]])
             );
         }
-        IERC20Upgradeable[4] memory assets = [IBBTC, RENBTC, WBTC, SBTC];
+        ERC20Upgradeable[4] memory assets = [ERC20Upgradeable(address(IBBTC)), ERC20Upgradeable(address(RENBTC)), ERC20Upgradeable(address(WBTC)), ERC20Upgradeable(address(SBTC))];
         uint256 virtualPrice = CURVE_REN_POOL.get_virtual_price();
         for (uint256 i = 0; i < 4; i++) {
             sum = sum.add(
-                depositAmounts[i].mul(virtualPrice).div(assets[i].decimals())
+                depositAmounts[i].mul(1e18).mul(1e18).div(virtualPrice).div(assets[i].decimals())
             );
         }
         return sum;
@@ -232,7 +233,7 @@ contract IbbtcVaultZap is PausableUpgradeable {
         uint256[4] calldata _amounts,
         uint256 _minOut,
         bool _mintIbbtc
-    ) public whenNotPaused {
+    ) public  whenNotPaused returns (uint256 amountOut) {
         // Not block locked by setts
         if (_mintIbbtc && (_amounts[1] > 0 || _amounts[2] > 0)) {
             require(
@@ -283,6 +284,8 @@ contract IbbtcVaultZap is PausableUpgradeable {
         IBBTC_VAULT.depositFor(msg.sender, vaultDepositAmount);
         uint256 balanceAfter = IBBTC_VAULT.balanceOf(msg.sender);
 
-        require(balanceAfter.sub(balanceBefore) >= _minOut, "Slippage Check");
+        amountOut = balanceAfter.sub(balanceBefore);
+
+        require(amountOut >= _minOut, "Slippage Check");
     }
 }
