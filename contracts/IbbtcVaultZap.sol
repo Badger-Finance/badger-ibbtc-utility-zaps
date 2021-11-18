@@ -201,10 +201,9 @@ contract IbbtcVaultZap is PausableUpgradeable {
     function expectedAmount(uint256[4] calldata _amounts, bool _mintIbbtc)
         public
         view
-        returns (uint256)
+        returns (uint256 amount)
     {
         uint256[4] memory depositAmounts;
-        uint256 sum;
         for (uint256 i = 0; i < 4; i++) {
             if (_amounts[i] > 0) {
                 if (!_mintIbbtc || i == 0 || i == 3) {
@@ -227,13 +226,12 @@ contract IbbtcVaultZap is PausableUpgradeable {
         ];
         uint256 virtualPrice = CURVE_REN_POOL.get_virtual_price();
         for (uint256 i = 0; i < 4; i++) {
-            sum = sum.add(
+            amount = amount.add(
                 depositAmounts[i].mul(1e36).div(virtualPrice).div(
                     10**uint256(assets[i].decimals())
                 )
             );
         }
-        return sum;
     }
 
     function deposit(
