@@ -219,10 +219,7 @@ contract IbbtcVaultZap is PausableUpgradeable {
         view
         returns (uint256 amount)
     {
-        uint256[4] memory depositAmounts = _constructDeposit(
-            _amounts,
-            false
-        );
+        uint256[4] memory depositAmounts = _constructDeposit(_amounts, false);
 
         if (depositAmounts[0] != 0) {
             depositAmounts[0] = WIBBTC.sharesToBalance(depositAmounts[0]);
