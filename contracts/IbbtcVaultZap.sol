@@ -223,10 +223,10 @@ contract IbbtcVaultZap is PausableUpgradeable {
         uint256 virtualPrice = CURVE_REN_POOL.get_virtual_price();
         for (uint256 i = 0; i < 4; i++) {
             sum = sum.add(
-                depositAmounts[i].mul(1e18).mul(1e18).div(virtualPrice).div(assets[i].decimals())
+                depositAmounts[i].mul(1e36).div(virtualPrice).div(10**uint256(assets[i].decimals()))
             );
         }
-        return sum;
+        return sum.mul(9996).div(10000);
     }
 
     function deposit(
