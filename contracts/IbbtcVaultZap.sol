@@ -14,6 +14,7 @@ import {IBadgerSettPeak} from "../interfaces/badger/IPeak.sol";
 import "../interfaces/badger/IWrappedIbbtcEth.sol";
 import "../interfaces/badger/ISett.sol";
 import "../interfaces/curve/ICurveFi.sol";
+import "../interfaces/curve/ICurveMeta.sol";
 
 contract IbbtcVaultZap is PausableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -192,6 +193,7 @@ contract IbbtcVaultZap is PausableUpgradeable {
 
     /// ===== Public Functions =====
 
+    /// @notice returns amount of lp tokens received after including slippage
     function calcMint(uint256[4] calldata _amounts, bool _mintIbbtc)
         public
         view
@@ -211,6 +213,7 @@ contract IbbtcVaultZap is PausableUpgradeable {
         return _vaultShares(crvLp);
     }
 
+    /// @notice returns amount of lp tokens received if slippage was 0
     function expectedAmount(uint256[4] calldata _amounts, bool _mintIbbtc)
         public
         view
@@ -231,17 +234,18 @@ contract IbbtcVaultZap is PausableUpgradeable {
             ERC20Upgradeable(address(WBTC)),
             ERC20Upgradeable(address(SBTC))
         ];
-        uint256 virtualPrice = CURVE_IBBTC_METAPOOL.get_virtual_price();
+        uint256 virtualPrice = ICurveMeta(CURVE_IBBTC_METAPOOL)
+            .get_virtual_price();
         for (uint256 i = 0; i < 4; i++) {
             if (depositAmounts[i] != 0) {
                 amount = amount.add(
-                    depositAmounts[i].mul(1e18).div(
-                        10**uint256(assets[i].decimals())
+                    depositAmounts[i].mul(
+                        10**(36 - uint256(assets[i].decimals()))
                     )
                 );
             }
         }
-        amount = amount.mul(1e8).div(virtualPrice);
+        amount = _vaultShares(amount.div(virtualPrice));
     }
 
     function deposit(
