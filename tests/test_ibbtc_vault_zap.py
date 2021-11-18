@@ -80,7 +80,6 @@ def test_deposit_flow_mint(
     shares = bcrvIbbtc.balanceOf(deployer)
 
     minAmount = ibbtc_vault_zap.calcMint(amounts, True)
-    expectedAmount = ibbtc_vault_zap.expectedAmount(amounts, True)
 
     ibbtc_vault_zap.deposit(amounts, minAmount * SLIPPAGE, True, {"from": deployer})
 
@@ -102,6 +101,10 @@ def test_deposit_flow_no_mint(
     minAmount = ibbtc_vault_zap.calcMint(amounts, False)
     expectedAmount = ibbtc_vault_zap.expectedAmount(amounts, False)
 
-    ibbtc_vault_zap.deposit(amounts, minAmount * SLIPPAGE, False, {"from": deployer})
+    assert expectedAmount >= minAmount
 
-    assert bcrvIbbtc.balanceOf(deployer) - shares >= minAmount * SLIPPAGE
+    ibbtc_vault_zap.deposit(
+        amounts, expectedAmount * SLIPPAGE, False, {"from": deployer}
+    )
+
+    assert bcrvIbbtc.balanceOf(deployer) - shares >= expectedAmount * SLIPPAGE

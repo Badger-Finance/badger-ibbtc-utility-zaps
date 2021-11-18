@@ -10,12 +10,12 @@ These tests must be run on mainnet-fork
 
 @pytest.fixture
 def zap_proxy():
-    yield Contract("0x87C3Ef099c6143e4687b060285bad201b9efa493")
+    yield Contract.from_explorer("0x87C3Ef099c6143e4687b060285bad201b9efa493")
 
 
 @pytest.fixture
 def proxy_admin():
-    return Contract("0x7D0398D7D7432c47Dffc942Cd097B9eA3d88C385")
+    return Contract.from_explorer("0x7D0398D7D7432c47Dffc942Cd097B9eA3d88C385")
 
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def proxy_admin_owner():
 
 @pytest.fixture(scope="session")
 def bcrvIbbtc(Contract):
-    yield Contract("0xaE96fF08771a109dc6650a1BdCa62F2d558E40af")
+    yield Contract.from_explorer("0xaE96fF08771a109dc6650a1BdCa62F2d558E40af")
 
 
 def test_upgrade(
@@ -84,9 +84,8 @@ def test_upgrade(
 
     # test if calcMint works
     shares = bcrvIbbtc.balanceOf(deployer)
+    zap_proxy = IbbtcVaultZap.at(zap_proxy)
 
+    # checking the newly added functions work
     minAmount = zap_proxy.calcMint(amounts, True)
-
-    zap_proxy.deposit(amounts, minAmount * SLIPPAGE, True, {"from": deployer})
-
-    assert bcrvIbbtc.balanceOf(deployer) - shares >= minAmount * SLIPPAGE
+    expectedAmount = zap_proxy.expectedAmount(amounts, False)
