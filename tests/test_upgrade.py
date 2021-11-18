@@ -88,4 +88,4 @@ def test_upgrade(
 
     # checking the newly added functions work
     minAmount = zap_proxy.calcMint(amounts, True)
-    expectedAmount = zap_proxy.expectedAmount(amounts, False)
+    expectedAmount = zap_proxy.expectedAmount(amounts)

@@ -214,14 +214,14 @@ contract IbbtcVaultZap is PausableUpgradeable {
     }
 
     /// @notice returns amount of lp tokens received if slippage was 0
-    function expectedAmount(uint256[4] calldata _amounts, bool _mintIbbtc)
+    function expectedAmount(uint256[4] calldata _amounts)
         public
         view
         returns (uint256 amount)
     {
         uint256[4] memory depositAmounts = _constructDeposit(
             _amounts,
-            _mintIbbtc
+            false
         );
 
         if (depositAmounts[0] != 0) {
