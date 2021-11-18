@@ -11,6 +11,7 @@ import "@openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 import "../interfaces/badger/ICurveZap.sol";
 import {IBadgerSettPeak} from "../interfaces/badger/IPeak.sol";
+import "../interfaces/badger/IWrappedIbbtcEth.sol";
 import "../interfaces/badger/ISett.sol";
 import "../interfaces/curve/ICurveFi.sol";
 
@@ -26,6 +27,9 @@ contract IbbtcVaultZap is PausableUpgradeable {
         0xFbdCA68601f835b27790D98bbb8eC7f05FDEaA9B; // Ibbtc crv metapool
     ICurveZap public constant CURVE_IBBTC_DEPOSIT_ZAP =
         ICurveZap(0xbba4b444FD10302251d9F5797E763b0d912286A1); // Ibbtc crv deposit zap
+
+    IWrappedIbbtcEth public constant WIBBTC =
+        IWrappedIbbtcEth(0x8751D4196027d4e6DA63716fA7786B5174F04C15); // wibbtc
 
     // For zap to ibBTC
     ICurveFi public constant CURVE_REN_POOL =
@@ -217,6 +221,10 @@ contract IbbtcVaultZap is PausableUpgradeable {
             _mintIbbtc
         );
 
+        if (depositAmounts[0] != 0) {
+            depositAmounts[0] = WIBBTC.sharesToBalance(depositAmounts[0]);
+        }
+
         ERC20Upgradeable[4] memory assets = [
             ERC20Upgradeable(address(IBBTC)),
             ERC20Upgradeable(address(RENBTC)),
@@ -225,12 +233,15 @@ contract IbbtcVaultZap is PausableUpgradeable {
         ];
         uint256 virtualPrice = CURVE_REN_POOL.get_virtual_price();
         for (uint256 i = 0; i < 4; i++) {
-            amount = amount.add(
-                depositAmounts[i].mul(1e36).div(virtualPrice).div(
-                    10**uint256(assets[i].decimals())
-                )
-            );
+            if (depositAmounts[i] != 0) {
+                amount = amount.add(
+                    depositAmounts[i].mul(1e18).div(
+                        10**uint256(assets[i].decimals())
+                    )
+                );
+            }
         }
+        amount = amount.mul(1e8).div(virtualPrice);
     }
 
     function deposit(
