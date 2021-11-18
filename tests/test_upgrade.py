@@ -58,8 +58,6 @@ def test_upgrade(
     # Deploy new logic
     proxy_admin.upgrade(zap_proxy, new_zap_logic.address, {"from": proxy_admin_owner})
 
-    assert False
-
     gov = accounts.at(zap_proxy.governance(), force=True)
 
     ## Checking all variables are as expected
