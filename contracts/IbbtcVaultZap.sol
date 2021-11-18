@@ -231,7 +231,7 @@ contract IbbtcVaultZap is PausableUpgradeable {
             ERC20Upgradeable(address(WBTC)),
             ERC20Upgradeable(address(SBTC))
         ];
-        uint256 virtualPrice = CURVE_REN_POOL.get_virtual_price();
+        uint256 virtualPrice = CURVE_IBBTC_METAPOOL.get_virtual_price();
         for (uint256 i = 0; i < 4; i++) {
             if (depositAmounts[i] != 0) {
                 amount = amount.add(
