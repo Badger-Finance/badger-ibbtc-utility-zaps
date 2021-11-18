@@ -4,14 +4,17 @@ pragma solidity ^0.6.12;
 
 import "@openzeppelin-contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 import "../interfaces/badger/ICurveZap.sol";
 import {IBadgerSettPeak} from "../interfaces/badger/IPeak.sol";
+import "../interfaces/badger/IWrappedIbbtcEth.sol";
 import "../interfaces/badger/ISett.sol";
 import "../interfaces/curve/ICurveFi.sol";
+import "../interfaces/curve/ICurveMeta.sol";
 
 contract IbbtcVaultZap is PausableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -25,6 +28,9 @@ contract IbbtcVaultZap is PausableUpgradeable {
         0xFbdCA68601f835b27790D98bbb8eC7f05FDEaA9B; // Ibbtc crv metapool
     ICurveZap public constant CURVE_IBBTC_DEPOSIT_ZAP =
         ICurveZap(0xbba4b444FD10302251d9F5797E763b0d912286A1); // Ibbtc crv deposit zap
+
+    IWrappedIbbtcEth public constant WIBBTC =
+        IWrappedIbbtcEth(0x8751D4196027d4e6DA63716fA7786B5174F04C15); // wibbtc
 
     // For zap to ibBTC
     ICurveFi public constant CURVE_REN_POOL =
@@ -164,15 +170,11 @@ contract IbbtcVaultZap is PausableUpgradeable {
         (bBTC, ) = SETT_PEAK.calcMint(0, sett);
     }
 
-    /// ===== Public Functions =====
-
-    function calcMint(uint256[4] calldata _amounts, bool _mintIbbtc)
-        public
+    function _constructDeposit(uint256[4] memory _amounts, bool _mintIbbtc)
+        internal
         view
-        returns (uint256)
+        returns (uint256[4] memory depositAmounts)
     {
-        uint256[4] memory depositAmounts;
-
         for (uint256 i = 0; i < 4; i++) {
             if (_amounts[i] > 0) {
                 if (!_mintIbbtc || i == 0 || i == 3) {
@@ -187,6 +189,20 @@ contract IbbtcVaultZap is PausableUpgradeable {
                 _calcIbbtcMint([_amounts[1], _amounts[2]])
             );
         }
+    }
+
+    /// ===== Public Functions =====
+
+    /// @notice returns amount of lp tokens received after including slippage
+    function calcMint(uint256[4] calldata _amounts, bool _mintIbbtc)
+        public
+        view
+        returns (uint256)
+    {
+        uint256[4] memory depositAmounts = _constructDeposit(
+            _amounts,
+            _mintIbbtc
+        );
 
         uint256 crvLp = CURVE_IBBTC_DEPOSIT_ZAP.calc_token_amount(
             CURVE_IBBTC_METAPOOL,
@@ -197,11 +213,43 @@ contract IbbtcVaultZap is PausableUpgradeable {
         return _vaultShares(crvLp);
     }
 
+    /// @notice returns amount of lp tokens received if slippage was 0
+    function expectedAmount(uint256[4] calldata _amounts)
+        public
+        view
+        returns (uint256 amount)
+    {
+        uint256[4] memory depositAmounts = _constructDeposit(_amounts, false);
+
+        if (depositAmounts[0] != 0) {
+            depositAmounts[0] = WIBBTC.sharesToBalance(depositAmounts[0]);
+        }
+
+        ERC20Upgradeable[4] memory assets = [
+            ERC20Upgradeable(address(IBBTC)),
+            ERC20Upgradeable(address(RENBTC)),
+            ERC20Upgradeable(address(WBTC)),
+            ERC20Upgradeable(address(SBTC))
+        ];
+        uint256 virtualPrice = ICurveMeta(CURVE_IBBTC_METAPOOL)
+            .get_virtual_price();
+        for (uint256 i = 0; i < 4; i++) {
+            if (depositAmounts[i] != 0) {
+                amount = amount.add(
+                    depositAmounts[i].mul(
+                        10**(36 - uint256(assets[i].decimals()))
+                    )
+                );
+            }
+        }
+        amount = _vaultShares(amount.div(virtualPrice));
+    }
+
     function deposit(
         uint256[4] calldata _amounts,
         uint256 _minOut,
         bool _mintIbbtc
-    ) public whenNotPaused {
+    ) public whenNotPaused returns (uint256 amountOut) {
         // Not block locked by setts
         if (_mintIbbtc && (_amounts[1] > 0 || _amounts[2] > 0)) {
             require(
@@ -252,6 +300,8 @@ contract IbbtcVaultZap is PausableUpgradeable {
         IBBTC_VAULT.depositFor(msg.sender, vaultDepositAmount);
         uint256 balanceAfter = IBBTC_VAULT.balanceOf(msg.sender);
 
-        require(balanceAfter.sub(balanceBefore) >= _minOut, "Slippage Check");
+        amountOut = balanceAfter.sub(balanceBefore);
+
+        require(amountOut >= _minOut, "Slippage Check");
     }
 }
