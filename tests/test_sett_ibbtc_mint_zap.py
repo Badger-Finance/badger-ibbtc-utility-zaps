@@ -4,31 +4,28 @@ from conftest import MAX_UINT256
 
 SETTS = {
     "byvWbtc": {
-        "idx": 0,
         "contract": "0x4b92d19c11435614CD49Af1b589001b7c08cD4D5",
         "whale": "0x53461E4fddcC1385f1256Ae24ce3505Be664f249",
     },
     "bcrvSbtc": {
-        "idx": 1,
         "contract": "0xd04c48A53c111300aD41190D63681ed3dAd998eC",
         "whale": "0x81EEc27E8e98289732ac106632047896E6592604",
     },
     "bcrvTbtc": {
-        "idx": 2,
         "contract": "0xb9D076fDe463dbc9f915E5392F807315Bf940334",
         "whale": "0xEE9F84Af6a8251Eb5ffDe38c5F056bc72d3b3DD0",
     },
     "bcrvHbtc": {
-        "idx": 3,
         "contract": "0x8c76970747afd5398e958bDfadA4cf0B9FcA16c4",
         "whale": "0xbd9795a14035dBA41BccFC563329aA6b197A0cBB",
     },
     "bcrvBbtc": {
-        "idx": 4,
         "contract": "0x5Dce29e92b1b939F8E8C60DcF15BDE82A85be4a9",
         "whale": "0x433CFfFeA18b811017856e9659ada4e6B441312d",
     },
 }
+
+MAX_SLIPPAGE = 0.01
 
 
 @pytest.fixture(scope="session")
@@ -69,7 +66,7 @@ def set_contract_approvals(
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def sett(web3, Contract, request, sett_ibbtc_zap, deployer):
     vault = Contract(request.param["contract"])
 
@@ -130,36 +127,29 @@ def test_pausing(deployer, sett_ibbtc_zap, guardian, rando):
         sett_ibbtc_zap.unpause({"from": guardian})
 
     with brownie.reverts():
-        sett_ibbtc_zap.mint(1, 0, 0, {"from": deployer})
+        sett_ibbtc_zap.mint(SETTS["bcrvSbtc"]["contract"], 1, 0, {"from": deployer})
 
     sett_ibbtc_zap.unpause({"from": deployer})
 
     assert sett_ibbtc_zap.paused() == False
 
 
-@pytest.mark.parametrize(
-    "sett_idx, sett",
-    [(SETTS["bcrvSbtc"]["idx"], SETTS["bcrvSbtc"])],
-    indirect=["sett"],
-)
-def test_set_zap_config(sett_ibbtc_zap, sett, sett_idx, ibbtc, renbtc, deployer, rando):
-    config = sett_ibbtc_zap.zapConfigs(sett_idx)
-    sett_address, token, curve_pool, _, _ = config
-
-    assert sett_address == sett.address
+@pytest.mark.parametrize("sett", [(SETTS["bcrvSbtc"])], indirect=True)
+def test_set_zap_config(sett_ibbtc_zap, sett, ibbtc, renbtc, deployer, rando):
+    _, curve_pool, withdraw_token, withdraw_ix = sett_ibbtc_zap.zapConfigs(sett)
 
     with brownie.reverts("onlyGovernance"):
-        sett_ibbtc_zap.setZapConfig(sett_idx, *config, {"from": rando})
+        sett_ibbtc_zap.setZapConfig(
+            sett, curve_pool, withdraw_token, withdraw_ix, {"from": rando}
+        )
 
-    sett_ibbtc_zap.setZapConfig(
-        sett_idx, sett, token, curve_pool, renbtc, 0, {"from": deployer}
-    )
+    sett_ibbtc_zap.setZapConfigWithdrawToken(sett, renbtc, 0, {"from": deployer})
 
     balance_before = ibbtc.balanceOf(deployer)
 
     amount_in = sett.balanceOf(deployer)
 
-    tx = sett_ibbtc_zap.mint(amount_in, sett_idx, 0, {"from": deployer})
+    tx = sett_ibbtc_zap.mint(sett, amount_in, 0, {"from": deployer})
     amount_out = tx.return_value
 
     balance_after = ibbtc.balanceOf(deployer)
@@ -170,21 +160,17 @@ def test_set_zap_config(sett_ibbtc_zap, sett, sett_idx, ibbtc, renbtc, deployer,
 
 
 @pytest.mark.parametrize(
-    "sett_idx, sett",
+    "sett",
     [
-        (
-            5,
-            {
-                "contract": "0x55912D0Cf83B75c492E761932ABc4DB4a5CB1b17",
-                "whale": "0xDe4288cbc81605E615e40aa0E171F74594671e53",
-            },
-        )
+        {
+            "contract": "0x55912D0Cf83B75c492E761932ABc4DB4a5CB1b17",
+            "whale": "0xDe4288cbc81605E615e40aa0E171F74594671e53",
+        },
     ],
-    indirect=["sett"],
+    indirect=True,
 )
-def test_add_zap_config(sett_idx, sett, sett_ibbtc_zap, wbtc, ibbtc, deployer, rando):
+def test_add_zap_config(sett, sett_ibbtc_zap, wbtc, ibbtc, deployer, rando):
     bcrvPbtc = {
-        "token": "0xDE5331AC4B3630f94853Ff322B66407e0D6331E8",
         "pool": "0x11F419AdAbbFF8d595E7d5b223eee3863Bb3902C",
         "withdrawToken": wbtc,
         "withdrawTokenIdx": 2,
@@ -192,18 +178,16 @@ def test_add_zap_config(sett_idx, sett, sett_ibbtc_zap, wbtc, ibbtc, deployer, r
     }
 
     with brownie.reverts("onlyGovernance"):
-        sett_ibbtc_zap.addZapConfig(
+        sett_ibbtc_zap.setZapConfig(
             sett,
-            bcrvPbtc["token"],
             bcrvPbtc["pool"],
             bcrvPbtc["withdrawToken"],
             bcrvPbtc["withdrawTokenIdx"],
             {"from": rando},
         )
 
-    sett_ibbtc_zap.addZapConfig(
+    sett_ibbtc_zap.setZapConfig(
         sett,
-        bcrvPbtc["token"],
         bcrvPbtc["pool"],
         bcrvPbtc["withdrawToken"],
         bcrvPbtc["withdrawTokenIdx"],
@@ -214,7 +198,7 @@ def test_add_zap_config(sett_idx, sett, sett_ibbtc_zap, wbtc, ibbtc, deployer, r
 
     amount_in = sett.balanceOf(deployer)
 
-    tx = sett_ibbtc_zap.mint(amount_in, sett_idx, 0, {"from": deployer})
+    tx = sett_ibbtc_zap.mint(sett, amount_in, 0, {"from": deployer})
     amount_out = tx.return_value
 
     balance_after = ibbtc.balanceOf(deployer)
@@ -224,33 +208,26 @@ def test_add_zap_config(sett_idx, sett, sett_ibbtc_zap, wbtc, ibbtc, deployer, r
     print(f"In: {amount_in} | Out: {amount_out}")
 
 
-@pytest.mark.parametrize(
-    "sett_idx, sett",
-    [(v["idx"], v) for v in SETTS.values()],
-    indirect=["sett"],
-)
-def test_zap_calc_mint(sett_ibbtc_zap, sett_idx, sett):
-    assert sett_ibbtc_zap.calcMint(0, sett_idx) == 0
+@pytest.mark.parametrize("sett", SETTS.values(), indirect=True)
+def test_zap_calc_mint(sett_ibbtc_zap, sett):
+    assert sett_ibbtc_zap.calcMint(sett, 0) == 0
 
     amount_in = 10 ** sett.decimals()
-    amount_out = sett_ibbtc_zap.calcMint(amount_in, sett_idx)
+    amount_out = sett_ibbtc_zap.calcMint(sett, amount_in)
 
     print(f"In: {amount_in} | Out: {amount_out}")
 
     assert amount_out > 0
 
 
-@pytest.mark.parametrize(
-    "sett_idx, sett",
-    [(v["idx"], v) for v in SETTS.values()],
-    indirect=["sett"],
-)
-def test_zap_mint(deployer, ibbtc, sett_ibbtc_zap, sett_idx, sett):
+@pytest.mark.parametrize("sett", SETTS.values(), indirect=True)
+def test_zap_mint(deployer, ibbtc, sett_ibbtc_zap, sett):
     balance_before = ibbtc.balanceOf(deployer)
 
     amount_in = sett.balanceOf(deployer)
 
-    tx = sett_ibbtc_zap.mint(amount_in, sett_idx, 0, {"from": deployer})
+    amount_out_expected = sett_ibbtc_zap.calcMint(sett, amount_in, {"from": deployer})
+    tx = sett_ibbtc_zap.mint(sett, amount_in, 0, {"from": deployer})
     amount_out = tx.return_value
 
     balance_after = ibbtc.balanceOf(deployer)
@@ -258,3 +235,5 @@ def test_zap_mint(deployer, ibbtc, sett_ibbtc_zap, sett_idx, sett):
     assert balance_after - balance_before == amount_out
 
     print(f"In: {amount_in} | Out: {amount_out}")
+
+    assert float(amount_out) == pytest.approx(amount_out_expected, rel=MAX_SLIPPAGE)
